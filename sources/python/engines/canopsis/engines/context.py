@@ -26,6 +26,12 @@ TODO: sla
 from canopsis.middleware import Middleware
 """
 
+HOSTGROUPS = 'hostgroups'
+SERVICEGROUPS = 'servicegroups'
+
+HOSTGROUP_TYPE = 'hostgroup'
+SERVICEGROUP_TYPE = 'servicegroup'
+
 
 class engine(Engine):
     etype = 'context'
@@ -68,115 +74,156 @@ class engine(Engine):
             mWarn = self.sla.data['mWarn']
         """
 
-        context = {}
+        # find the right ctx related to (connector, connector_name, ...)
+        ctx = self.context.get_entity_from_evt(event)
+        # add event entities to DB
+        entities = self.get_entities_from_ctx(ctx=ctx)
 
-        # Get event informations
-        connector = event['connector']
-        connector_name = event['connector_name']
-        component = event['component']
-        resource = event.get('resource', None)
-        hostgroups = event.get('hostgroups', [])
-        servicegroups = event.get('servicegroups', [])
+        if entities:  # if entity of types (connector, ...) exists
+            # get last found entity
+            entity = entities[-1]
 
-        # add connector
-        entity = {Context.NAME: connector}
-        self.context.put(_type='connector', entity=entity)
+            connector_name = event['connector_name']
+            component = event['component']
 
-        # add connector_name
-        entity[Context.NAME] = connector_name
+            # dict which contains data to update
+            data_to_update = {}
 
-        context['connector'] = connector
-        self.context.put(
-            _type='connector_name', entity=entity, context=context
-        )
+            connector = event['connector']
+            if 'connector' not in entity or connector != entity['connector']:
+                data_to_update['connector'] = connector
+            connector_name = event['connector_name']
+            if 'connector_name' not in entity or connector_name != entity['connector_name']:
+                data_to_update['connector_name'] = connector_name
+            component = event['component']
+            if 'component' not in entity or component != entity['component']:
+                data_to_update['component'] = component
 
-        # add status entity which is a component or a resource
-        entity[Context.NAME] = 'component'
-        context['connector_name'] = connector_name
-        status_entity = entity.copy()
-        status_entity['hostgroups'] = hostgroups
+            # get status data
+            mCrit = event.get('mCrit')
+            mWarn = event.get('mWarn')
+            state = event['state']
+            state_type = event['state_type']
 
-        is_status_entity = False
-        source_type = event['source_type']
+            # add status to data_to_update if necessary
+            if entity.get('mCrit', None) != mCrit:
+                data_to_update['mCrit'] = mCrit
+            if entity.get('mWarn', None) != mWarn:
+                data_to_update['mWarn'] = mWarn
+            if entity.get('state', None) != state:
+                data_to_update['state'] = state
+            if entity.get('state_type', None) != state_type:
+                data_to_update['state_type'] = state_type
 
-        # create an entity status which is a component or a resource
-        if source_type == 'component':
-            is_status_entity = True
+            # if entity type is a component or a resource
+            if entity[Context.TYPE] in ('component', 'resource'):
 
-        elif source_type == 'resource':
-            # add component
-            self.context.put(
-                _type='component', entity=status_entity, context=context
-            )
-            is_status_entity = True
-            context['component'] = component
-            status_entity[Context.NAME] = resource
-            status_entity['servicegroups'] = servicegroups
+                # Get hostgroups informations
+                hostgroups = event.get(HOSTGROUPS, [])
+
+                # add hostgroups
+                hostgroup_entities = self.context.find(
+                    types=HOSTGROUP_TYPE, names=hostgroups)
+                if len(hostgroups) != hostgroup_entities:
+                    for hostgroup in hostgroups:
+                        self.context.put(_type=HOSTGROUP_TYPE, name=hostgroup)
+
+                # add hostgroups to data_to_update if necessary
+                if entity.get(HOSTGROUPS, []) != hostgroups:
+                    data_to_update[HOSTGROUPS] = hostgroups
+
+                # if status data_to_update is a resource
+                if entity[Context.TYPE] == 'resource':
+
+                    # Get servicegroups informations
+                    servicegroups = event.get(SERVICEGROUPS, [])
+
+                    # add servicegroups
+                    servicegoup_entities = self.context.find(
+                        types=SERVICEGROUP_TYPE, names=servicegroups)
+                    if len(servicegroups) != servicegoup_entities:
+                        for servicegoup in servicegroups:
+                            self.context.put(
+                                _type=SERVICEGROUP_TYPE, name=servicegoup)
+
+                    # add servicegroups to data_to_update if necessary
+                    if entity.get(SERVICEGROUPS, []) != servicegroups:
+                        data_to_update[SERVICEGROUPS] = servicegroups
+
+                # update the data_to_update if necessary
+                if data_to_update:
+                    put_args = {
+                        '_type': entity[Context.TYPE],
+                        'name': entity[Context.NAME],
+                        '_id': entity[Context.ID],
+                        'entity': data_to_update
+                    }
+                    if Context.PARENT_ID in entity:
+                        put_args['parent_id'] = entity[Context.PARENT_ID]
+                    self.context.put(**put_args)
+
+            # add authored data_to_update data (downtime, ack, metric, etc.)
+            authored_entity = {}
+            event_type = event['event_type']
+
+            if 'author' in event:
+                authored_entity['author'] = event['author']
+                if 'output' in event:
+                    authored_entity['comment'] = event['output']
+
+            # only ack and downtime event type are managed
+            if event_type in ('ack', 'downtime'):
+
+                if event_type == 'ack':
+                    authored_entity['timestamp'] = event['timestamp']
+                    _id = str(event['timestamp'])
+
+                elif event_type == 'downtime':
+                    authored_entity['downtime_id'] = event['downtime_id']
+                    authored_entity['start'] = event['start']
+                    authored_entity['end'] = event['end']
+                    authored_entity['duration'] = event['duration']
+                    authored_entity['fixed'] = event['fixed']
+                    authored_entity['entry'] = event['entry']
+                    _id = event['id']
+
+                # this time, parent id is entity[Context.ID]
+                parent_id = entity[Context.ID]
+
+                # push authored data in DB
+                self.context.put(
+                    _type=event_type,
+                    name=_id,
+                    _id=_id,
+                    entity=authored_entity,
+                    parent_id=parent_id
+                )
+
+            else:
+                self.logger.error(
+                    'Event type {0} if not managed such as an authored data'.
+                    format(event))
+
+            # add perf data
+            for perfdata in event.get('perf_data_array', []):
+                name = perfdata['metric']
+                _type = 'metric'
+                perfdata_entity = {
+                    'internal': perfdata['metric'].startswith('cps')
+                }
+                perfdatum = self.find(
+                    types=_type, names=name, parent_ids=parent_id)
+                if not perfdatum:  # only if it didn't exist
+                    self.context.put(
+                        _type=_type,
+                        entity=perfdata_entity,
+                        name=name,
+                        parent_id=parent_id
+                    )
 
         else:
-            self.logger.warning('source_type unknown %s' % source_type)
-
-        if is_status_entity:
-            # add status entity
-            status_entity['mCrit'] = event.get(mCrit, None)
-            status_entity['mWarn'] = event.get(mWarn, None)
-            status_entity['state'] = event['state']
-            status_entity['state_type'] = event['state_type']
-            self.context.put(
-                _type=source_type, entity=status_entity, context=context
-            )
-
-        # add hostgroups
-        for hostgroup in hostgroups:
-            hostgroup_data = {Context.NAME: hostgroup}
-            self.context.put(_type='hostgroup', entity=hostgroup_data)
-
-        # add servicegroups
-        for servicegroup in servicegroups:
-            servicegroup_data = {
-                Context.NAME: servicegroup
-            }
-            self.context.put(_type='servicegroup', entity=servicegroup_data)
-
-        context['component'] = component
-        if resource:
-            context['resource'] = resource
-
-        # add authored entity data (downtime, ack, metric, etc.)
-        authored_data = entity.copy()
-        event_type = event['event_type']
-
-        if 'author' in event:
-            authored_data['author'] = event['author']
-            authored_data['comment'] = event.get('output', None)
-
-            if authored_data['comment'] is None:
-                del authored_data['comment']
-
-        if event_type == 'ack':
-            authored_data['timestamp'] = event['timestamp']
-            authored_data[Context.NAME] = str(event['timestamp'])
-
-        elif event_type == 'downtime':
-            authored_data['downtime_id'] = event['downtime_id']
-            authored_data['start'] = event['start']
-            authored_data['end'] = event['end']
-            authored_data['duration'] = event['duration']
-            authored_data['fixed'] = event['fixed']
-            authored_data['entry'] = event['entry']
-            authored_data[Context.NAME] = event['id']
-
-        self.context.put(
-            _type=event_type, entity=authored_data, context=context
-        )
-
-        # add perf data
-        for perfdata in event.get('perf_data_array', []):
-            perfdata_entity = entity.copy()
-            perfdata_entity[Context.NAME] = perfdata['metric']
-            perfdata_entity['internal'] = perfdata['metric'].startswith('cps')
-            self.context.put(
-                _type='metric', entity=perfdata_entity, context=context
-            )
+            self.logger.error(
+                'Event {0} is not associated to any data_to_update'.format(
+                    event))
 
         return event

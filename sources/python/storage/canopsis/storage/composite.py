@@ -32,7 +32,8 @@ class CompositeStorage(Storage):
 
     For example, a metric is identified by a unique name in the path
     (type=metric, connector, component, resource) or
-    (type=metric, connector, component).
+    (type=metric, connector, component) which corresponds to a unique parent id
+    and a type id. Some other components can depends on several parent ids, etc
 
     In addition to such composity, data of the same name and type can be the
     same data with different path. In such case, they are called shared and
@@ -55,20 +56,7 @@ class CompositeStorage(Storage):
 
         super(CompositeStorage, self).__init__(*args, **kwargs)
 
-        self._path = path
-
-    @property
-    def path(self):
-        """
-        tuple of ordered field names.
-        """
-        return self._path
-
-    @path.setter
-    def path(self, value):
-
-        self._path = value
-        self.reconnect()
+        self.path = path
 
     def all_indexes(self, *args, **kwargs):
 

@@ -112,12 +112,23 @@ class engine(Engine):
 
             for perf_data in perf_data_array:
 
-                event_with_metric = deepcopy(event)
-                event_with_metric['type'] = 'metric'
-                event_with_metric[Context.NAME] = perf_data['metric']
+                entity = self.perfdata.context.get_entity_from_evt(event)
+
+                _type = 'metric'
+                name = perf_data['metric']
+                parent_id = entity[Context.ID]
+
+                perfdata_entities = self.perfdata.context.find(
+                    types=_type, names=name, parent_ids=parent_id)
+
+                if perfdata_entities:
+                    perfdata_entity = perfdata_entities[0]
+                else:
+                    perfdata_entity = self.perfdata.context.put(
+                        _type=_type, name=name, parent_id=parent_id)
 
                 metric_id = self.perfdata.context.get_entity_id(
-                    event_with_metric)
+                    perfdata_entity)
                 value = perf_data.pop('value', None)
 
                 self.perfdata.put(

@@ -22,63 +22,71 @@ from canopsis.configuration.configurable.decorator import (
     conf_paths, add_category)
 from canopsis.middleware.registry import MiddlewareRegistry
 from canopsis.storage import Storage
+from canopsis.common.utils import isiterable
+from uuid import uuid4 as uuid
 
 CONF_RESOURCE = 'context/context.conf'  #: last context conf resource
-CATEGORY = 'CONTEXT'  #: context category
+CATEGORY = 'CONTEXT'  #: Context category
 
 
 @add_category(CATEGORY)
 @conf_paths(CONF_RESOURCE)
 class Context(MiddlewareRegistry):
     """
-    Manage access to a context (connector, component, resource) elements
-    and context data (metric, downtime, etc.)
+    Manage access to a ctx (connector, component, resource) elements
+    and ctx data (metric, downtime, etc.)
 
     It uses a composite storage in order to modelise composite data.
 
     For example, let a resource ``R`` in the component ``C`` and connector
-    ``K`` is identified through the context [``K``, ``C``], the name ``R`` and
+    ``K`` is identified through the ctx [``K``, ``C``], the name ``R`` and
     the type ``resource``.
 
     In addition to those composable data, it is possible to extend two entities
-    which have the same name and type but different context.
+    which have the same name and type but different ctx.
 
     For example, in following entities:
         - component: name is component_id and type is component
         - connector: name is connector and type is connector
     """
 
-    DATA_SCOPE = 'context'  #: default data scope
+    DATA_SCOPE = 'ctx'  #: default data scope
 
     CTX_STORAGE = 'ctx_storage'  #: ctx storage name
-    CONTEXT = 'context'
+    CONTEXT = 'ctx'
 
     TYPE = 'type'  #: entity type field name
-    NAME = Storage.DATA_ID  #: entity name field name
+    PARENT_ID = 'pid'  #: entity parent id
+    ID = Storage.DATA_ID  #: entity id field name
+    NAME = 'name'  #: entity name field name
     EXTENDED = 'extended'  #: extended field name
 
-    DEFAULT_CONTEXT = [
-        TYPE, 'connector', 'connector_name', 'component', 'resource']
+    # an entity is unique by a type, a parent id and a name
+    DEFAULT_CONTEXT = [TYPE, NAME, PARENT_ID]
+
+    ENTITY_TYPES_LIST = [
+        ('connector', 'connector_name', 'component', 'resource'),
+        ('topology', 'topology_node')]
 
     def __init__(
-        self, context=DEFAULT_CONTEXT, ctx_storage=None, *args, **kwargs
+        self, ctx=DEFAULT_CONTEXT, ctx_storage=None, *args, **kwargs
     ):
 
         super(Context, self).__init__(self, *args, **kwargs)
 
-        self._context = context
+        self._context = ctx
         if ctx_storage is not None:
             self[Context.CTX_STORAGE] = ctx_storage
 
     @property
-    def context(self):
+    def ctx(self):
         """
-        List of context element name.
+        List of ctx element name.
         """
         return self._context
 
-    @context.setter
-    def context(self, value):
+    @ctx.setter
+    def ctx(self, value):
         self._context = value
 
     def get_entities(self, ids):
@@ -90,144 +98,229 @@ class Context(MiddlewareRegistry):
 
         return self[Context.CTX_STORAGE].get_elements(ids=ids)
 
-    def get_entity(self, event, from_db=False, create_if_not_exists=False):
+    def get_entity_from_evt(self, event, from_db=False, create=True):
         """
         Get event entity.
 
         :param bool from_base: If True (False by default), check return entity
             from base, otherwise, return entity information from the event.
-        :param bool create_if_not_exists: Create the event entity if it does
-            not exists (False by default)
+        :param bool create: Create the event entity if it does not exists
+            (True by default).
+        :return: event entity or None if not entity exists
+        :rtype: dict
         """
 
-        result = {}
+        result = None
 
-        _type = event['source_type']
+        ctx = self.get_ctx_from_event(event)
 
-        if Context.NAME in event:
-            name = event[Context.NAME]
-        else:
-            name = event[_type]
+        entities = self.get_entities_from_ctx(ctx=ctx, create=create)
 
-        # get the right context
-        context = {Context.TYPE: _type}
-        for ctx in self.context:
-            if ctx in event:
-                context[ctx] = event[ctx]
-        # remove field which is the name
-        if _type in context:
-            del context[_type]
-
-        if from_db:
-            result = self.get(_type=_type, names=name, context=context)
-
-        else:
-            result = context.copy()
-            result[Context.NAME] = name
-
-        # if entity does not exists, create it if specified
-        if result is None and create_if_not_exists:
-            result = {Context.NAME: name}
-            self.put(_type=_type, entity=result, context=context)
+        if entities:
+            result = entities[-1]
 
         return result
 
-    def get(self, _type, names, context=None, extended=False):
+    def get_entities_from_ctx(self, ctx=None, create=True):
         """
-        Get one entity
+        Get a chain of entities related to a ctx.
 
-        :param _type: entity type (connector, component, etc.)
-        :type _type: str
+        :param str _type: entity type
+        :param str name: entity name
+        :param dict ctx: set of (entity type, entity name) such as result
+            parents
+        :param bool create: create entities if they do not exist
+        :return: list of found entities
+        :rtype: list
+        """
 
-        :param names: entity names
-        :type names: str
+        result = []
 
-        :param context: entity context such as couples of name, value.
-        :type context: dict
+        # initialize entity and parent_id
+        parent_id = None
 
-        :param extended: get extended entities if entity is shared.
+        # among entity types list
+        for entity_types in Context.ENTITY_TYPES_LIST:
+
+            # iterate on entity type from entity types list
+            for entity_type in entity_types:
+
+                # if entity_type is in ctx
+                if entity_type in ctx:
+
+                    # get name
+                    name = ctx[entity_type]
+
+                    # get the right entity
+                    entities = self.find(
+                        types=entity_type,
+                        names=name,
+                        parent_ids=parent_id
+                    )
+
+                    entity = entities[0] if entities else None
+
+                    # if an entity has not been found
+                    if entity is None:
+                        if create:  # create it if necessary
+                            entity = self.put(
+                                _type=entity_type,
+                                parent_id=parent_id,
+                                name=name
+                            )
+
+                        else:  # or break the loop
+                            break
+
+                    # append entity to the result
+                    result.append(entity)
+                    # parent_id equals entity id
+                    parent_id = entity[Context.ID]
+
+                else:
+                    break
+
+            # if an entity has been found
+            if result:
+                # exit the loop
+                break
+
+        return result
+
+    def get(
+        self, ids, types=None, names=None, parent_ids=None, extended=False
+    ):
+        """
+        Get entities by type, parent id and names
+
+        :param str _type: entity type (connector, component, etc.)
+
+        :param str names: entity names
+
+        :param str parent_id: parent entit id
+
+        :param dict ctx: entity ctx such as couples of name, value.
+
+        :param bool extended: get extended entities if entity is shared.
 
         :return: one element, list of elements if entity is shared or None
         :rtype: dict, list or None
         """
 
-        path = {Context.TYPE: _type}
-
-        if context is not None:
-            path.update(context)
+        _filter = Context._prepare_filter(
+            ids=ids, types=types, names=names, parent_ids=parent_ids)
 
         result = self[Context.CTX_STORAGE].get(
-            path=path, data_ids=names, shared=extended)
+            path=_filter, data_ids=ids, shared=extended)
 
         return result
 
     def find(
-        self, _type=None, context=None, _filter=None, extended=False,
+        self,
+        ids=None, types=None, parent_ids=None, names=None, ctx=None,
+        _filter=None, extended=False,
         limit=0, skip=0, sort=None, with_count=False
     ):
         """
-        Find all entities which of input _type and context with an additional
+        Find all entities which of input _type and ctx with an additional
         filter.
 
         :param extended: get extended entities if they are shared
         """
 
+        result = None
+
         path = {}
 
-        if _type is not None:
-            path[Context.TYPE] = _type
-        if context is not None:
-            path.update(context)
+        if ctx is not None:
+            entities = self.get_entities_from_ctx(ctx=ctx)
+            if entities:
+                path = entities[-1]
+
+        query = Context._prepare_filter(
+            ids=ids, types=types, parent_ids=parent_ids, names=names)
+
+        if _filter is not None:
+            query.update(_filter)
 
         result = self[Context.CTX_STORAGE].get(
-            path=path, _filter=_filter, shared=extended,
-            limit=limit, skip=skip, sort=sort, with_count=with_count)
+            path=path, _filter=query, shared=extended,
+            limit=limit, skip=skip, sort=sort)
 
         return result
 
-    def put(self, _type, entity, context=None, extended_id=None):
+    def put(
+        self,
+        _type, name, entity=None, parent_id=None, _id=None, extended_id=None
+    ):
         """
         Put an element designated by the element_id, element_type and element.
-        If timestamp is None, time.now is used.
+
+        :return: entity
         """
 
-        path = {Context.TYPE: _type}
+        _id = str(uuid()) if _id is None else _id
 
-        if context is not None:
-            path.update(context)
+        # fill path
+        path = {
+            Context.NAME: name,
+            Context.TYPE: _type
+        }
+        if parent_id is not None:
+            path[Context.PARENT_ID] = parent_id
 
-        name = entity[Context.NAME]
+        # fill data
+        data = {
+            Context.NAME: name
+        }
+        if entity is not None:
+            data.update(entity)
 
-        entity = self.get(_type=_type, names=name, context=context)
+        self[Context.CTX_STORAGE].put(
+            path=path, data_id=_id, data=data, shared_id=extended_id)
 
-        if entity is None:
+        result = {
+            Context.ID: _id
+        }
+        result.update(path)
+        result.update(data)
 
-            self[Context.CTX_STORAGE].put(
-                path=path, data_id=name, data=entity, shared_id=extended_id)
+        return result
 
-    def remove(self, ids=None, _type=None, context=None, extended=False):
+    def remove(
+        self,
+        ids=None, types=None, parent_ids=None, names=None, ctx=None,
+        extended=False
+    ):
         """
         Remove a set of elements identified by element_ids, an element type or
         a timewindow
         """
 
-        path = {}
+        # start to remove entities from the ctx if necessary
+        if ctx is not None:
+            # get all entities
+            entities = self.get_entities_from_ctx(
+                ctx=ctx, create=False)
+            # remove entities
+            for entity in entities:
+                self.remove(
+                    ids=entity[Context.ID],
+                    types=entity[Context.TYPE],
+                    parent_ids=entity[Context.PARENT_ID],
+                    names=entity[Context.NAMES]
+                )
 
-        if _type is not None:
-            path[Context.TYPE] = _type
-
-        if context is not None:
-            path.update(context)
+        # create a filter
+        path = Context._prepare_filter(
+            ids=ids, types=types, parent_ids=parent_ids, names=names)
 
         if path:
             self[Context.CTX_STORAGE].remove(path=path, shared=extended)
 
-        if ids is not None:
-            self[Context.CTX_STORAGE].remove_elements(ids=ids)
-
     def get_entity_context_and_name(self, entity):
         """
-        Get the right context related to input entity
+        Get the right ctx related to input entity
         """
 
         result = self[Context.CTX_STORAGE].get_path_with_id(entity)
@@ -236,7 +329,7 @@ class Context(MiddlewareRegistry):
 
     def get_entity_id(self, entity):
         """
-        Get unique entity id related to its context and name.
+        Get unique entity id related to its ctx and name.
         """
 
         path, data_id = self.get_entity_context_and_name(entity=entity)
@@ -259,4 +352,92 @@ class Context(MiddlewareRegistry):
             unified_conf=unified_conf, *args, **kwargs)
 
         if Context.CTX_STORAGE in self:
-            self[Context.CTX_STORAGE].path = self.context
+            self[Context.CTX_STORAGE].path = self.ctx
+
+    @staticmethod
+    def get_ctx_from_event(event):
+        """
+        Get a ctx object from an event.
+
+        :param dict event: contains pairs of entity (type, name)
+        """
+
+        result = {}
+
+        entity_types = Context.ENTITY_TYPES_LIST[0]
+
+        # iterate on entity types
+        for entity_type in entity_types:
+            # and push event value
+            if entity_type in event:
+                result[entity_type] = event[entity_type]
+            else:  # or break the loop
+                break
+
+        return result
+
+    @staticmethod
+    def get_ctx_from_rk(rk):
+        """
+        Get a ctx object from an rk.
+
+        :param str rk: may respect the form '/key0/key1/.../keyn' where
+            key0, key1, ..., keyn are entity names which have to respect
+            Context.ENTITY_TYPES_LIST values.
+        :return: set of pairs (entity type, entity name) related to rk and
+            first type tree.
+        :rtype: dict
+        """
+
+        # result is an empty dict
+        result = {}
+
+        # split entity_names
+        entity_names = rk.split('/')[1:]
+
+        entity_types = Context.ENTITY_TYPES_LIST[0]
+
+        # calculate the minimal length
+        min_length = min(len(entity_names), len(entity_types))
+
+        # result contains all pairs of entity types and names
+        result = {
+            entity_types[index]: entity_names[index]
+            for index in range(min_length)
+        }
+
+        return result
+
+    @staticmethod
+    def _prepare_filter(ids=None, types=None, parent_ids=None, names=None):
+        """
+        Prepare a filter related to ids, types, parent_ids and a ctx.
+        """
+
+        result = {}
+
+        if ids is not None:
+            if isiterable(ids, is_str=False):
+                result[Context.ID] = {'$in': ids}
+            else:
+                result[Context.ID] = ids
+
+        if types is not None:
+            if isiterable(types, is_str=False):
+                result[Context.TYPE] = {'$in': types}
+            else:
+                result[Context.TYPE] = types
+
+        if parent_ids is not None:
+            if isiterable(parent_ids, is_str=False):
+                result[Context.PARENT_ID] = {'$in': parent_ids}
+            else:
+                result[Context.PARENT_ID] = parent_ids
+
+        if names is not None:
+            if isiterable(names, is_str=False):
+                result[Context.NAME] = {'$in': names}
+            else:
+                result[Context.NAME] = names
+
+        return result
