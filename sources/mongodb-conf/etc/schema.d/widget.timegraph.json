@@ -83,13 +83,16 @@
                     {"name": "crecord_name", "title": "Name"}
                 ]
             },
+            "sourceMappingKeys": [{
+                "sourceItemKey": "id",
+                "objectKey": "serie"
+            },{
+                "sourceItemKey": "crecord_name",
+                "objectKey": "label"
+            }],
             "items": {
                 "type": "object",
                 "role": "stylizedserie",
-                "sourceRelationshipIdKey": {
-                    "sourceItemKey": "id",
-                    "objectKey": "serie"
-                },
                 "typeKeyName": "xtype",
                 "properties": {
                     "color": {
@@ -102,6 +105,9 @@
                         "schemaType":"curve",
                         "valueField":"id",
                         "labelField":"crecord_name"
+                    },
+                    "label": {
+                        "type": "string"
                     }
                 },
                 "relationship": "belongsTo",
@@ -122,20 +128,20 @@
             "type": "array",
             "source": {
                 "schema": "ctxmetric",
+                "searchMethod": "metric",
                 "columns": [
                     {"name": "component", "title": "Component"},
                     {"name": "resource", "title": "Resource"},
                     {"name": "cid", "title": "Metric"}
                 ]
             },
+            "sourceMappingKeys": [{
+                "sourceItemKey": "id",
+                "objectKey": "metric"
+            }],
             "items": {
                 "type": "object",
                 "role": "stylizedmetric",
-                "sourceRelationshipIdKey": {
-                    "sourceItemKey": "id",
-                    "objectKey": "metric"
-                },
-                "polymorphicTypeKey": "component",
                 "typeKeyName": "xtype",
                 "properties": {
                     "color": {
@@ -152,7 +158,8 @@
                         "type": "string"
                     },
                     "unit": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The unit displayed for this metric"
                     }
                 },
                 "relationship": "belongsTo",
