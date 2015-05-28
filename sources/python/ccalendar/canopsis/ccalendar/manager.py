@@ -19,74 +19,50 @@
 # ---------------------------------
 
 from canopsis.configuration.configurable.decorator import (
-    conf_paths, add_category
+    add_category, conf_paths
 )
-from canopsis.middleware.registry import MiddlewareRegistry
+from canopsis.vevent.manager import VEventManager
 
+from json import loads
+
+
+#: calendar manager configuration path
 CONF_PATH = 'calendar/calendar.conf'
+#: calendar manager configuration category name
 CATEGORY = 'CALENDAR'
 
 
 @conf_paths(CONF_PATH)
 @add_category(CATEGORY)
-class Calendar(MiddlewareRegistry):
-    """Manage calendar information in Canopsis.
+class calendarManager(VEventManager):
+    """Dedicated to manage calendar event.
+
+    Such period are technically an expression which respects the icalendar
+    specification ftp://ftp.rfc-editor.org/in-notes/rfc2445.txt.
+
+    A calendar document contains several values. Each value contains
+    an icalendar expression (dtstart, rrule, duration) and an array of
+    behavior entries:
+
+    {
+        id: document_id,
+        entity_id: entity id,
+        period: period,
+        behaviors: behavior ids
+    }.
     """
 
-    CALENDAR_STORAGE = 'calendar_storage'
+    CATEGORY = 'X-Canopsis-category'
+    OUTPUT = 'X-Canopsis-output'
 
-    def find(
-        self,
-        limit=None,
-        skip=None,
-        ids=None,
-        sort=None,
-        with_count=False,
-        query={}
-    ):
-        """Retrieve information from data sources
+    def _get_info(self, vevent, *args, **kwargs):
 
-        :param str ids: an id list for document to search.
-        :param int limit: maximum record fetched at once.
-        :param int skip: ordinal number where selection should start.
-        :param bool with_count: compute selection count when True.
-        """
+        serialized_category = vevent[calendarManager.CATEGORY]
+        serialized_output = vevent[calendarManager.OUTPUT]
 
-        result = self[Calendar.CALENDAR_STORAGE].get_elements(
-            ids=ids,
-            skip=skip,
-            sort=sort,
-            limit=limit,
-            query=query,
-            with_count=with_count
-        )
+        result = {
+            "category": serialized_category,
+            "output": serialized_output
+        }
 
         return result
-
-    def put(
-        self,
-        _id,
-        document,
-        cache=False
-    ):
-        """Persistance layer for upsert operations
-
-        :param _id: entity id
-        :param document: contains link information for entities
-        """
-
-        self[Calendar.CALENDAR_STORAGE].put_element(
-            _id=_id, element=document, cache=cache
-        )
-
-    def remove(
-        self,
-        ids,
-        cache=False
-    ):
-        """Remove fields persisted in a default storage.
-
-        :param element_id: identifier for the document to remove
-        """
-
-        self[Calendar.CALENDAR_STORAGE].remove_elements(ids=ids, cache=cache)
