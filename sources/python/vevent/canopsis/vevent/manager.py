@@ -35,7 +35,7 @@ from dateutil.rrule import rrulestr
 
 from calendar import timegm
 
-from datetime import datetime, time as datetime_time
+from datetime import datetime, time as datetime_time, timedelta
 
 from uuid import uuid4 as uuid
 
@@ -89,15 +89,25 @@ class VEventManager(MiddlewareRegistry):
         if vevent_storage is not None:
             self[VEventManager.STORAGE] = vevent_storage
 
-    def _get_info(self, vevent):
-        """Get information from an ical Event.
+    def _get_document_properties(self, document):
+        """Get properties from a document.
+
+        :param dict document: document from where get properties.
+        :return: document properties in a dictionary.
+        :rtype: dict
+        """
+
+        return {}
+
+    def _get_vevent_properties(self, vevent):
+        """Get information from a vevent.
 
         :param Event vevent: vevent from where get information.
         :return: vevent information in a dictionary.
         :rtype: dict
         """
 
-        return None
+        return {}
 
     def get_by_uids(
         self, uids,
@@ -170,14 +180,14 @@ class VEventManager(MiddlewareRegistry):
         query['$and'] = [
             {
                 '$or': [
-                    {VEventManager.DTSTART: {'$geq': dtstart}},
-                    {VEventManager.DTSTART: {'$leq': dtend}}
+                    {VEventManager.DTSTART: {'$gte': dtstart}},
+                    {VEventManager.DTSTART: {'$lte': dtend}}
                 ]
             },
             {
                 '$or': [
-                    {VEventManager.DTEND: {'$geq': dtstart}},
-                    {VEventManager.DTEND: {'$leq': dtend}}
+                    {VEventManager.DTEND: {'$gte': dtstart}},
+                    {VEventManager.DTEND: {'$lte': dtend}}
                 ]
             }
         ]
@@ -230,13 +240,59 @@ class VEventManager(MiddlewareRegistry):
 
         for vevent in vevents:
 
-            document = vevent if isinstance(vevent, dict) else None
+            document = None
+
+            if isinstance(document, dict):
+
+                document = vevent
+                # get uid
+                uid = document[VEventManager.UID]
+                if not uid:
+                    uid = str(uuid())
+                    document[VEventManager.UID] = uid
+                # get source
+                source = document.get(VEventManager.SOURCE, source)
+                # get dtstart
+                dtstart = document[VEventManager.DTSTART]
+                # get dtend
+                dtend = document[VEventManager.DTEND]
+                # get duration
+                duration = document[VEventManager.DURATION]
+                # get freq
+                freq = document[VEventManager.FREQ]
+                # get vevent
+                vevent = document[VEventManager.VEVENT]
+
+                # construct the right vevent if False
+                if not vevent:
+                    # prepare vevent kwargs with specific parameters
+                    kwargs = self._get_document_properties(document=document)
+                    # prepare vevent properties
+                    kwargs[VEventManager.UID] = uid
+                    if source:
+                        kwargs[VEventManager.SOURCE] = source
+                    if dtstart:
+                        kwargs[VEventManager.DTSTART] = datetime.fromtimestamp(
+                            dtstart
+                        )
+                    if dtend:
+                        kwargs[VEventManager.DTEND] = datetime.fromtimestamp(
+                            dtend
+                        )
+                    if duration:
+                        kwargs[VEventManager.DURATION] = timedelta(duration)
+                    if freq:
+                        kwargs[VEventManager.FREQ] = freq
+                    # updat vevent field in document
+                    document[VEventManager.VEVENT] = Event(**kwargs).to_ical()
 
             # if document has to be generated ...
-            if document is None:
+            else:
                 # ensure vevent is an ical format
                 if isinstance(vevent, basestring):
                     vevent = Event.from_ical(vevent)
+                # prepare the document with specific properties
+                document = self._get_vevent_properties(vevent=vevent)
                 # get dtstart
                 dtstart = vevent.get(VEventManager.DTSTART, 0)
                 if isinstance(dtstart, datetime):
@@ -246,33 +302,31 @@ class VEventManager(MiddlewareRegistry):
                 if isinstance(dtend, datetime):
                     dtend = timegm(dtend.timetuple())
                 # get duration
-                duration = vevent.get([VEventManager.DURATION])
+                duration = vevent.get(VEventManager.DURATION)
+                # get freq
+                freq = vevent.get(VEventManager.FREQ)
+                # get uid
+                uid = vevent.get(VEventManager.UID)
+                if not uid:
+                    uid = str(uuid())
                 # prepare the document
-                document = {
+                document.update({
+                    VEventManager.UID: uid,
                     VEventManager.SOURCE: source,
                     VEventManager.DTSTART: dtstart,
                     VEventManager.DTEND: dtend,
                     VEventManager.DURATION: duration,
+                    VEventManager.FREQ: freq,
                     VEventManager.VEVENT: vevent.to_ical()
-                }
-                # get info
-                document_info = self._get_info(vevent)
-                if document_info is not None:
-                    document.update(document_info)
+                })
 
-            # get document uid
-            if VEventManager.UID in document:
-                uid = document[VEventManager.UID]
-            else:
-                uid = str(uuid())
-                # put it in document if not already present
-                document[VEventManager.UID] = uid
-
-            result.append(document)
+            document['_id'] = uid
 
             self[VEventManager.STORAGE].put_element(
-                _id=uid, document=document
+                _id=uid, element=document
             )
+
+            result.append(document)
 
         return result
 
@@ -303,119 +357,5 @@ class VEventManager(MiddlewareRegistry):
         result = self[VEventManager.STORAGE].remove_elements(
             _filter=_filter, cache=cache
         )
-
-        return result
-
-    def get_before(
-        self, sources=None, ts=None, dtstart=None, dtstop=None, query=None
-    ):
-        """Get before date related to one timestamp and additional parameters.
-
-        :param list sources: sources from where parse vevent documents.
-        :param int ts: timestamp from when find vevent documents.
-        :param int dtstart: vevent dtstart.
-        :param int dtend: vevent dtend.
-        :param dict query: additional filtering query to apply in the search.
-        :return: list of before date per source.
-        """
-
-        result = self._get_around(
-            sources=sources, ts=ts, dtstart=dtstart, dtstop=dtstop,
-            query=query, after=False
-        )
-
-        return result
-
-    def get_after(
-        self, sources=None, ts=None, dtstart=None, dtstop=None, query=None
-    ):
-        """Get afer date related to one timestamp and additional parameters.
-
-        :param list sources: sources from where parse vevent documents.
-        :param int ts: timestamp from when find vevent documents.
-        :param int dtstart: vevent dtstart.
-        :param int dtend: vevent dtend.
-        :param dict query: additional filtering query to apply in the search.
-        :return: list of after date per source.
-        """
-
-        result = self._get_around(
-            sources=sources, ts=ts, dtstart=dtstart, dtstop=dtstop,
-            query=query, after=True
-        )
-
-        return result
-
-    def _get_around(
-        self,
-        sources=None, ts=None, dtstart=None, dtend=None, query=None,
-        after=True
-    ):
-        """Get around date related to one timestamp and additional parameters.
-
-        :param list sources: sources from where parse vevent documents.
-        :param int ts: timestamp from when find vevent documents.
-        :param int dtstart: vevent dtstart.
-        :param int dtend: vevent dtend.
-        :param dict query: additional filtering query to apply in the search.
-        :param bool after: if True (default), get period after ts (included),
-            otherwise, before ts.
-        :return: list of around date per source.
-        """
-
-        result = {}
-
-        # initialize ts
-        if ts is None:
-            ts = time()
-        # calculate ts datetime
-        dtts = datetime.fromtimestamp(ts)
-
-        # get entity documents(s)
-        documents = self.values(
-            sources=sources, dtstart=dtstart, dtend=dtend, query=query
-        )
-
-        for document in documents:
-            # get event
-            vevent = document[VEventManager.VEVENT]
-            event = Event.from_ical(vevent)
-
-            # get duration, dtstart and rrule
-            duration = event.get('duration')
-            duration = duration.dt
-            dtstart = event.get('dtstart')
-            dtstart = dtstart.dt
-
-            if isinstance(dtstart, datetime_time):
-                dtstart = datetime.now().replace(
-                    hour=dtstart.hour, minute=dtstart.minute,
-                    second=dtstart.second, tzinfo=dtstart.tzinfo
-                )
-
-            rrule = event.get('rrule')
-            rrule = rrulestr(rrule.to_ical(), cache=True, dtstart=dtstart)
-            # calculate first date after dtts including dtts
-            if after:
-                around = rrule.after(dt=dtts, inc=True)
-            else:
-                around = rrule.before(dt=dtts, inc=True)
-
-            # if around datetime exist
-            if around is not None:
-                source = document[VEventManager.SOURCE]
-
-                if source not in result:
-                    result[source] = {}
-
-                # add duration
-                end = around + duration
-
-                # and check if dtstart is in [first; end]
-                if around <= dtts <= end:
-                    # update end in the result
-                    endts = timegm(end.timetuple())
-
-                    result[source] = endts
 
         return result
