@@ -95,6 +95,9 @@
 			"required": true,
 			"role": "criticity"
 		},
+		"entity_id": {
+			"type": "string"
+		},
 		"perimeter": {
 			"type": "string"
 		},

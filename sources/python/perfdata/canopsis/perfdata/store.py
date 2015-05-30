@@ -30,10 +30,7 @@ perfdatamgr = PerfData()
 
 
 @register_task
-def event_processing(engine, event, manager=None, logger=None, **kwargs):
-    """Perfdata engine synchronous processing.
-    """
-
+def event_processing(engine, event, manager=None, logger=None, **params):
     if manager is None:
         manager = perfdatamgr
 
@@ -120,8 +117,7 @@ def event_processing(engine, event, manager=None, logger=None, **kwargs):
             value = perf_data.pop('value', None)
 
             manager.put(
-                metric_id=metric_id, points=[(timestamp, value)],
-                meta=perf_data, cache=True
+                metric_id=metric_id, points=[(timestamp, value)], cache=True
             )
 
     return event

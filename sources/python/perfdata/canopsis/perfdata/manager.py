@@ -134,20 +134,18 @@ class PerfData(MiddlewareRegistry):
         return result
 
     def get_meta(
-        self, metric_id, timewindow=None, limit=0, sort=None
+        self, metric_id, timewindow=None
     ):
         """
         Get the meta data related to input data_id and timewindow.
         """
 
-        if timewindow is None:
-            timewindow = get_offset_timewindow()
+        #if timewindow is None:
+        #    timewindow = get_offset_timewindow(time())
 
         result = self[PerfData.META_STORAGE].get(
-            data_id=metric_id,
-            timewindow=timewindow,
-            limit=limit,
-            sort=sort
+            data_ids=metric_id,
+            timewindow=timewindow
         )
 
         return result
@@ -217,7 +215,7 @@ class PerfData(MiddlewareRegistry):
         Update meta information.
         """
 
-        self[PerfData.PERFDATA_STORAGE].put(
+        self[PerfData.META_STORAGE].put(
             data_id=metric_id, value=meta, timestamp=timestamp, cache=cache)
 
     def remove_meta(self, metric_id, timewindow=None, cache=False):
@@ -225,7 +223,7 @@ class PerfData(MiddlewareRegistry):
         Remove meta information.
         """
 
-        self[PerfData.PERFDATA_STORAGE].remove(
+        self[PerfData.META_STORAGE].remove(
             data_id=metric_id, timewindow=timewindow, cache=cache)
 
     def get_period(self, metric_id, period=None):

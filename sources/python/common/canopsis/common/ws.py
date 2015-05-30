@@ -346,4 +346,9 @@ class route(object):
 def apply_routes(urls):
     for url in urls:
         decorator = route(url['method'], name=url['name'], **url['params'])
+        handler = url['handler']
+
+        if hasattr(handler, '__self__'):
+            handler = lambda *args, **kwargs: handler(*args, **kwargs)
+
         decorator(url['handler'])
