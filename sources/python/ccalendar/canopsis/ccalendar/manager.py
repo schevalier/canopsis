@@ -34,7 +34,7 @@ CATEGORY = 'CALENDAR'
 
 @conf_paths(CONF_PATH)
 @add_category(CATEGORY)
-class calendarManager(VEventManager):
+class CalendarManager(VEventManager):
     """Dedicated to manage calendar event.
 
     Such period are technically an expression which respects the icalendar

@@ -83,8 +83,8 @@ class VEventManager(MiddlewareRegistry):
         """
         :param Storage vevent_storage: vevent storage.
         """
-
         super(VEventManager, self).__init__(*args, **kwargs)
+
         # set storage if given
         if vevent_storage is not None:
             self[VEventManager.STORAGE] = vevent_storage
@@ -142,7 +142,7 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     def values(
-        self, sources=None, dtstart=None, dtend=None, query=None,
+        self, sources=None, dtstart=None, dtend=None, query={},
         limit=0, skip=0, sort=None, projection=None, with_count=False
     ):
         """Get source vevent document values.
@@ -163,10 +163,26 @@ class VEventManager(MiddlewareRegistry):
         :return: matchable documents.
         :rtype: list
         """
+        query = self._build_vevent_query(
+            sources=sources,
+            dtstart=dtstart,
+            dtend=dtend
+        )
 
-        # initialize query
-        if query is None:
-            query = {}
+        documents = self[VEventManager.STORAGE].find_elements(
+            query=query,
+            limit=limit, skip=skip, sort=sort, projection=projection,
+            with_count=with_count
+        )
+
+        if with_count:
+            result = list(documents[0]), documents[1]
+        else:
+            result = list(documents)
+
+        return result
+
+    def _build_vevent_query(self, sources=None, dtstart=None, dtend=None):
 
         # put sources in query if necessary
         if sources is not None:
@@ -191,19 +207,7 @@ class VEventManager(MiddlewareRegistry):
                 ]
             }
         ]
-
-        documents = self[VEventManager.STORAGE].find_elements(
-            query=query,
-            limit=limit, skip=skip, sort=sort, projection=projection,
-            with_count=with_count
-        )
-
-        if with_count:
-            result = list(documents[0]), documents[1]
-        else:
-            result = list(documents)
-
-        return result
+        return query
 
     def whois(self, sources=None, dtstart=None, dtend=None, query=None):
         """Get a set of sources which match with timed condition and query.
