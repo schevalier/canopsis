@@ -27,15 +27,11 @@ from canopsis.configuration.configurable.decorator import (
 )
 from canopsis.middleware.registry import MiddlewareRegistry
 
-from time import time
-
 from icalendar import Event
-
-from dateutil.rrule import rrulestr
 
 from calendar import timegm
 
-from datetime import datetime, time as datetime_time, timedelta
+from datetime import datetime, timedelta
 
 from uuid import uuid4 as uuid
 
@@ -58,14 +54,14 @@ class VEventManager(MiddlewareRegistry):
     behavior entries:
 
     {
-        id: document_id,
+        uid: document id,
         source: source element id,
         dtstart: datetime start,
         dtend: datetime end,
         duration: vevent duration,
         freq: vevent freq,
         vevent: vevent ical format value,
-        info: data information
+        ... # specific properties
     }.
     """
 
@@ -77,7 +73,9 @@ class VEventManager(MiddlewareRegistry):
     DTEND = 'dtend'  #: dtend field name
     DURATION = 'duration'  #: duration field name
     FREQ = 'freq'  #: freq field name
-    VEVENT = 'vevent'  #: vevent value field name
+    ICAL = 'iCal'  #: iCal value field name
+
+    SOURCE_TYPE = 'X-Canopsis-SourceType'  #: source type field name
 
     def __init__(self, vevent_storage=None, *args, **kwargs):
         """
@@ -108,6 +106,46 @@ class VEventManager(MiddlewareRegistry):
         """
 
         return {}
+
+    def get_vevent(self, document):
+        """Get a vevent from a document.
+
+        :param dict document: document to transform into an Event.
+        :return: document vevent.
+        :rtype: Event
+        """
+
+        # prepare vevent kwargs
+        kwargs = self._get_document_properties(document=document)
+
+        # get uid
+        uid = document.get(VEventManager.UID)
+        if uid:
+            kwargs[VEventManager.UID] = uid
+        # get source
+        source = document.get(VEventManager.SOURCE)
+        if source:
+            kwargs[VEventManager.SOURCE_TYPE] = source
+        # get dtstart
+        dtstart = document[VEventManager.DTSTART]
+        if dtstart:
+            kwargs[VEventManager.DTSTART] = datetime.fromtimestamp(dtstart)
+        # get dtend
+        dtend = document[VEventManager.DTEND]
+        if dtend:
+            kwargs[VEventManager.DTEND] = datetime.fromtimestamp(dtend)
+        # get duration
+        duration = document[VEventManager.DURATION]
+        if duration:
+            kwargs[VEventManager.DURATION] = timedelta(duration)
+        # get freq
+        freq = document[VEventManager.FREQ]
+        if freq:
+            kwargs[VEventManager.FREQ] = freq
+
+        result = Event(**kwargs)
+
+        return result
 
     def get_by_uids(
         self, uids,
@@ -149,8 +187,8 @@ class VEventManager(MiddlewareRegistry):
 
         :param list sources: sources from where get values. If None, use all
             sources.
-        :param int dtstart: vevent dtstart (default 0).
-        :param int dtend: vevent dtend (default sys.maxsize).
+        :param float dtstart: vevent dtstart (default 0).
+        :param float dtend: vevent dtend (default sys.maxsize).
         :param dict query: additional filtering query to apply in the search.
         :param int limit: max number of elements to get.
         :param int skip: first element index among searched list.
@@ -193,21 +231,21 @@ class VEventManager(MiddlewareRegistry):
         if dtend is None:
             dtend = maxsize
 
-        query['$and'] = [
-            {
-                '$or': [
-                    {VEventManager.DTSTART: {'$gte': dtstart}},
-                    {VEventManager.DTSTART: {'$lte': dtend}}
-                ]
-            },
-            {
-                '$or': [
-                    {VEventManager.DTEND: {'$gte': dtstart}},
-                    {VEventManager.DTEND: {'$lte': dtend}}
-                ]
-            }
-        ]
-        return query
+        query[VEventManager.DTSTART] = {'$lte': dtend}
+        query[VEventManager.DTEND] = {'$gte': dtstart}
+
+        documents = self[VEventManager.STORAGE].find_elements(
+            query=query,
+            limit=limit, skip=skip, sort=sort, projection=projection,
+            with_count=with_count
+        )
+
+        if with_count:
+            result = list(documents[0]), documents[1]
+        else:
+            result = list(documents)
+
+        return result
 
     def whois(self, sources=None, dtstart=None, dtend=None, query=None):
         """Get a set of sources which match with timed condition and query.
@@ -246,11 +284,11 @@ class VEventManager(MiddlewareRegistry):
 
             document = None
 
-            if isinstance(document, dict):
+            if isinstance(vevent, dict):
 
                 document = vevent
                 # get uid
-                uid = document[VEventManager.UID]
+                uid = document.get(VEventManager.UID)
                 if not uid:
                     uid = str(uuid())
                     document[VEventManager.UID] = uid
@@ -265,7 +303,7 @@ class VEventManager(MiddlewareRegistry):
                 # get freq
                 freq = document[VEventManager.FREQ]
                 # get vevent
-                vevent = document[VEventManager.VEVENT]
+                vevent = document[VEventManager.ICAL]
 
                 # construct the right vevent if False
                 if not vevent:
@@ -274,7 +312,7 @@ class VEventManager(MiddlewareRegistry):
                     # prepare vevent properties
                     kwargs[VEventManager.UID] = uid
                     if source:
-                        kwargs[VEventManager.SOURCE] = source
+                        kwargs[VEventManager.SOURCE_TYPE] = source
                     if dtstart:
                         kwargs[VEventManager.DTSTART] = datetime.fromtimestamp(
                             dtstart
@@ -288,7 +326,7 @@ class VEventManager(MiddlewareRegistry):
                     if freq:
                         kwargs[VEventManager.FREQ] = freq
                     # updat vevent field in document
-                    document[VEventManager.VEVENT] = Event(**kwargs).to_ical()
+                    document[VEventManager.ICAL] = Event(**kwargs).to_ical()
 
             # if document has to be generated ...
             else:
@@ -307,12 +345,17 @@ class VEventManager(MiddlewareRegistry):
                     dtend = timegm(dtend.timetuple())
                 # get duration
                 duration = vevent.get(VEventManager.DURATION)
+                if duration:
+                    duration = duration.total_seconds()
                 # get freq
                 freq = vevent.get(VEventManager.FREQ)
                 # get uid
                 uid = vevent.get(VEventManager.UID)
                 if not uid:
                     uid = str(uuid())
+                # get source
+                if not source:
+                    source = vevent.get(VEventManager.SOURCE_TYPE)
                 # prepare the document
                 document.update({
                     VEventManager.UID: uid,
@@ -321,14 +364,14 @@ class VEventManager(MiddlewareRegistry):
                     VEventManager.DTEND: dtend,
                     VEventManager.DURATION: duration,
                     VEventManager.FREQ: freq,
-                    VEventManager.VEVENT: vevent.to_ical()
+                    VEventManager.ICAL: vevent.to_ical()
                 })
-
-            document['_id'] = uid
 
             self[VEventManager.STORAGE].put_element(
                 _id=uid, element=document
             )
+
+            document['_id'] = uid
 
             result.append(document)
 
@@ -353,6 +396,7 @@ class VEventManager(MiddlewareRegistry):
         :param list sources: sources from where remove related vevent
             documents.
         """
+
         _filter = {}
 
         if sources is not None:
