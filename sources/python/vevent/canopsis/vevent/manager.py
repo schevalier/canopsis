@@ -222,28 +222,19 @@ class VEventManager(MiddlewareRegistry):
 
     def _build_vevent_query(self, sources=None, dtstart=None, dtend=None):
 
+        result = {}
+
         # put sources in query if necessary
         if sources is not None:
-            query[VEventManager.SOURCE] = {'$in': sources}
+            result[VEventManager.SOURCE] = {'$in': sources}
         # put dtstart and dtend in query
         if dtstart is None:
             dtstart = 0
         if dtend is None:
             dtend = maxsize
 
-        query[VEventManager.DTSTART] = {'$lte': dtend}
-        query[VEventManager.DTEND] = {'$gte': dtstart}
-
-        documents = self[VEventManager.STORAGE].find_elements(
-            query=query,
-            limit=limit, skip=skip, sort=sort, projection=projection,
-            with_count=with_count
-        )
-
-        if with_count:
-            result = list(documents[0]), documents[1]
-        else:
-            result = list(documents)
+        result[VEventManager.DTSTART] = {'$lte': dtend}
+        result[VEventManager.DTEND] = {'$gte': dtstart}
 
         return result
 
