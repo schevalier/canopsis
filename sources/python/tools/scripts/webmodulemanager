@@ -38,8 +38,12 @@ modules = [
     'canopsis-ui',
     'userpreferences',
     'charts',
+<<<<<<< HEAD
     'canopsis-vevent',
     'canopsis-pbehavior'
+=======
+    'canopsis-rights',
+>>>>>>> develop
 ]
 
 """
