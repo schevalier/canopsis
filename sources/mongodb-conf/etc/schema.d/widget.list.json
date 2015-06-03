@@ -41,17 +41,8 @@
 				"slacrit",
 				"topology",
 				"user",
-<<<<<<< HEAD
-				"derogation",
-				"group",
-				"eventlog",
-				"context",
-				"ctxmetric",
-				"linklist"
-=======
 				"userview",
 				"widgetpreferences"
->>>>>>> develop
 			],
 			"default": "group",
 			"role": "simplelist"
