@@ -38,7 +38,10 @@ modules = [
     'canopsis-ui',
     'userpreferences',
     'charts',
+    'canopsis-vevent',
+    'canopsis-pbehavior',
     'canopsis-rights',
+    'widgetCalendar'
 ]
 
 """
