@@ -55,10 +55,33 @@ class CalendarManager(VEventManager):
     CATEGORY = 'X-Canopsis-category'
     OUTPUT = 'X-Canopsis-output'
 
-    def _get_info(self, vevent, *args, **kwargs):
+    def _get_vevent_properties(self, vevent, *args, **kwargs):
+        """Get information from a vevent.
+
+        :param Event vevent: vevent from where get information
+        :return: vevent information in a dictionary
+        :rtype: dict
+        """
 
         serialized_category = vevent[calendarManager.CATEGORY]
         serialized_output = vevent[calendarManager.OUTPUT]
+
+        result = {
+            "category": serialized_category,
+            "output": serialized_output
+        }
+
+        return result
+
+    def _get_document_properties(self, document):
+        """Get properties from a document.
+
+        :param dict document: document from where get properties.
+        :return: document properties in a dictionary.
+        :rtype: dict
+        """
+        serialized_category = document.get("category")
+        serialized_output = document.get("output")
 
         result = {
             "category": serialized_category,
