@@ -35,8 +35,6 @@ from datetime import datetime, timedelta
 
 from uuid import uuid4 as uuid
 
-from sys import maxsize
-
 CONF_PATH = 'vevent/vevent.conf'
 CATEGORY = 'VEVENT'
 
@@ -109,7 +107,7 @@ class VEventManager(MiddlewareRegistry):
     @staticmethod
     def get_document(
         uid=None, source=None,
-        duration=0, rrule=None, dtstart=0, dtend=maxsize,
+        duration=1, rrule=None, dtstart=899909521, dtend=2145916800,
         **kwargs
     ):
         """Get a document related to input values.
@@ -209,7 +207,7 @@ class VEventManager(MiddlewareRegistry):
         :param list sources: sources from where get values. If None, use all
             sources.
         :param float dtstart: vevent dtstart (default 0).
-        :param float dtend: vevent dtend (default sys.maxsize).
+        :param float dtend: vevent dtend (default 2145916800).
         :param dict query: additional filtering query to apply in the search.
         :param int limit: max number of elements to get.
         :param int skip: first element index among searched list.
@@ -250,9 +248,9 @@ class VEventManager(MiddlewareRegistry):
             result[VEventManager.SOURCE] = {'$in': sources}
         # put dtstart and dtend in query
         if dtstart is None:
-            dtstart = 0
+            dtstart = 899909521
         if dtend is None:
-            dtend = maxsize
+            dtend = 2145916800
 
         result[VEventManager.DTSTART] = {'$lte': dtend}
         result[VEventManager.DTEND] = {'$gte': dtstart}
@@ -265,7 +263,7 @@ class VEventManager(MiddlewareRegistry):
         :param list sources: sources from where get values. If None, use all
             sources.
         :param int dtstart: vevent dtstart (default 0).
-        :param int dtend: vevent dtend (default sys.maxsize).
+        :param int dtend: vevent dtend (default 2145916800).
         :param dict query: additional filtering query to apply in the search.
         :return: sources.
         :rtype: set

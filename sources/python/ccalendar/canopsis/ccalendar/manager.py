@@ -41,19 +41,11 @@ class CalendarManager(VEventManager):
     specification ftp://ftp.rfc-editor.org/in-notes/rfc2445.txt.
 
     A calendar document contains several values. Each value contains
-    an icalendar expression (dtstart, rrule, duration) and an array of
-    behavior entries:
-
-    {
-        id: document_id,
-        entity_id: entity id,
-        period: period,
-        behaviors: behavior ids
-    }.
+    an icalendar expression (dtstart, rrule, duration)
     """
 
-    CATEGORY = 'X-Canopsis-category'
-    OUTPUT = 'X-Canopsis-output'
+    CATEGORY = 'CATEGORY'
+    OUTPUT = 'OUTPUT'
 
     def _get_vevent_properties(self, vevent, *args, **kwargs):
         """Get information from a vevent.
@@ -63,8 +55,8 @@ class CalendarManager(VEventManager):
         :rtype: dict
         """
 
-        serialized_category = vevent[calendarManager.CATEGORY]
-        serialized_output = vevent[calendarManager.OUTPUT]
+        serialized_category = vevent[CalendarManager.CATEGORY]
+        serialized_output = vevent[CalendarManager.OUTPUT]
 
         result = {
             "category": serialized_category,
