@@ -1,12 +1,20 @@
 [{
 	"_id": "admin",
 	"rights": {
+		"actionbutton_canuploadmibfile": {
+			"checksum": 15,
+			"desc": "Upload mib file to canopsis system"
+		},
 		"actionbutton_canediturlfield": {
 			"checksum": 15,
 			"desc": ""
 		},
 		"actionbutton_connectoredit": {
 			"checksum": 15,
+			"desc": ""
+		},
+		"view_event": {
+			"checksum": 7,
 			"desc": ""
 		},
 		"actionbutton_connectordisable": {
@@ -26,14 +34,6 @@
 			"desc": ""
 		},
 		"actionbutton_connectorsetconf": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_service": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_view_connectors": {
 			"checksum": 15,
 			"desc": ""
 		},
@@ -100,30 +100,6 @@
 		"actionbutton_ticketnumber": {
 			"checksum": 15,
 			"desc": ""
-		},
-		"showview_view_event": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_view_selectors": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_view_jobs": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_view_filters": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_view_services": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_view_series": {
-			"checksum": 15,
-			"desc": ""
 		}
 	}
 },{
@@ -153,15 +129,7 @@
 			"checksum": 15,
 			"desc": ""
 		},
-		"showview_view_services": {
-			"checksum": 15,
-			"desc": ""
-		},
 		"actionbutton_info": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_view_filters": {
 			"checksum": 15,
 			"desc": ""
 		},
@@ -185,14 +153,6 @@
 			"checksum": 15,
 			"desc": ""
 		},
-		"showview_view_accounts": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_view_permissions": {
-			"checksum": 15,
-			"desc": ""
-		},
 		"menu_aclconfig": {
 			"checksum": 15,
 			"desc": ""
@@ -213,10 +173,6 @@
 			"checksum": 15,
 			"desc": ""
 		},
-		"showview_view_filters": {
-			"checksum": 15,
-			"desc": ""
-		},
 		"list_filters": {
 			"checksum": 15,
 			"desc": ""
@@ -233,13 +189,5 @@
 },{
 	"_id": "Visualisation",
 	"rights": {
-		"showview_view_event": {
-			"checksum": 15,
-			"desc": ""
-		},
-		"showview_view_services": {
-			"checksum": 15,
-			"desc": ""
-		}
 	}
 }]

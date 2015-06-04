@@ -35,7 +35,7 @@ from datetime import datetime, timedelta
 
 from uuid import uuid4 as uuid
 
-from sys import maxsize
+MAXTS = 2147483647  #: maximal timestamp
 
 CONF_PATH = 'vevent/vevent.conf'
 CATEGORY = 'VEVENT'
@@ -71,9 +71,10 @@ class VEventManager(MiddlewareRegistry):
     SOURCE = 'source'  #: source field name
     DTSTART = 'dtstart'  #: dtstart field name
     DTEND = 'dtend'  #: dtend field name
+    RRULE = 'rrule'  #: rrule vevent field name
     DURATION = 'duration'  #: duration field name
-    FREQ = 'freq'  #: freq field name
-    VEVENT = 'vevent'  #: vevent value field name
+
+    SOURCE_TYPE = 'X-Canopsis-SourceType'  #: source type field name
 
     def __init__(self, vevent_storage=None, *args, **kwargs):
         """
@@ -104,6 +105,68 @@ class VEventManager(MiddlewareRegistry):
         """
 
         return {}
+
+    @staticmethod
+    def get_document(
+        uid=None, source=None,
+        duration=0, rrule=None, dtstart=0, dtend=MAXTS,
+        **kwargs
+    ):
+        """Get a document related to input values.
+        """
+
+        result = kwargs
+
+        result.update({
+            VEventManager.UID: str(uuid()) if uid is None else uid,
+            VEventManager.SOURCE: source,
+            VEventManager.DURATION: duration,
+            VEventManager.RRULE: rrule,
+            VEventManager.DTSTART: dtstart,
+            VEventManager.DTEND: dtend
+        })
+
+        return result
+
+    def get_vevent(self, document):
+        """Get a vevent from a document.
+
+        :param dict document: document to transform into an Event.
+        :return: document vevent.
+        :rtype: Event
+        """
+
+        # prepare vevent kwargs
+        kwargs = self._get_document_properties(document=document)
+
+        # get uid
+        uid = document.get(VEventManager.UID)
+        if uid:
+            kwargs[VEventManager.UID] = uid
+        # get source
+        source = document.get(VEventManager.SOURCE)
+        if source:
+            kwargs[VEventManager.SOURCE_TYPE] = source
+        # get dtstart
+        dtstart = document[VEventManager.DTSTART]
+        if dtstart:
+            kwargs[VEventManager.DTSTART] = datetime.fromtimestamp(dtstart)
+        # get dtend
+        dtend = document[VEventManager.DTEND]
+        if dtend:
+            kwargs[VEventManager.DTEND] = datetime.fromtimestamp(dtend)
+        # get duration
+        duration = document[VEventManager.DURATION]
+        if duration:
+            kwargs[VEventManager.DURATION] = timedelta(duration)
+        # get freq
+        rrule = document[VEventManager.RRULE]
+        if rrule:
+            kwargs[VEventManager.RRULE] = rrule
+
+        result = Event(**kwargs)
+
+        return result
 
     def get_by_uids(
         self, uids,
@@ -145,8 +208,8 @@ class VEventManager(MiddlewareRegistry):
 
         :param list sources: sources from where get values. If None, use all
             sources.
-        :param int dtstart: vevent dtstart (default 0).
-        :param int dtend: vevent dtend (default sys.maxsize).
+        :param float dtstart: vevent dtstart (default 0).
+        :param float dtend: vevent dtend (default sys.MAXTS).
         :param dict query: additional filtering query to apply in the search.
         :param int limit: max number of elements to get.
         :param int skip: first element index among searched list.
@@ -171,22 +234,10 @@ class VEventManager(MiddlewareRegistry):
         if dtstart is None:
             dtstart = 0
         if dtend is None:
-            dtend = maxsize
+            dtend = MAXTS
 
-        query['$and'] = [
-            {
-                '$or': [
-                    {VEventManager.DTSTART: {'$gte': dtstart}},
-                    {VEventManager.DTSTART: {'$lte': dtend}}
-                ]
-            },
-            {
-                '$or': [
-                    {VEventManager.DTEND: {'$gte': dtstart}},
-                    {VEventManager.DTEND: {'$lte': dtend}}
-                ]
-            }
-        ]
+        query[VEventManager.DTSTART] = {'$lte': dtend}
+        query[VEventManager.DTEND] = {'$gte': dtstart}
 
         documents = self[VEventManager.STORAGE].find_elements(
             query=query,
@@ -207,7 +258,7 @@ class VEventManager(MiddlewareRegistry):
         :param list sources: sources from where get values. If None, use all
             sources.
         :param int dtstart: vevent dtstart (default 0).
-        :param int dtend: vevent dtend (default sys.maxsize).
+        :param int dtend: vevent dtend (default sys.MAXTS).
         :param dict query: additional filtering query to apply in the search.
         :return: sources.
         :rtype: set
@@ -254,33 +305,8 @@ class VEventManager(MiddlewareRegistry):
                 dtend = document[VEventManager.DTEND]
                 # get duration
                 duration = document[VEventManager.DURATION]
-                # get freq
-                freq = document[VEventManager.FREQ]
-                # get vevent
-                vevent = document[VEventManager.VEVENT]
-
-                # construct the right vevent if False
-                if not vevent:
-                    # prepare vevent kwargs with specific parameters
-                    kwargs = self._get_document_properties(document=document)
-                    # prepare vevent properties
-                    kwargs[VEventManager.UID] = uid
-                    if source:
-                        kwargs[VEventManager.SOURCE] = source
-                    if dtstart:
-                        kwargs[VEventManager.DTSTART] = datetime.fromtimestamp(
-                            dtstart
-                        )
-                    if dtend:
-                        kwargs[VEventManager.DTEND] = datetime.fromtimestamp(
-                            dtend
-                        )
-                    if duration:
-                        kwargs[VEventManager.DURATION] = timedelta(duration)
-                    if freq:
-                        kwargs[VEventManager.FREQ] = freq
-                    # updat vevent field in document
-                    document[VEventManager.VEVENT] = Event(**kwargs).to_ical()
+                # get rrule
+                rrule = document[VEventManager.RRULE]
 
             # if document has to be generated ...
             else:
@@ -297,14 +323,25 @@ class VEventManager(MiddlewareRegistry):
                 dtend = vevent.get(VEventManager.DTEND, 0)
                 if isinstance(dtend, datetime):
                     dtend = timegm(dtend.timetuple())
+                # get rrule
+                rrule = vevent.get(VEventManager.RRULE)
+                if rrule is not None:
+                    _rrule = ""
+                    for rrule_key in rrule:
+                        rrule_value = rrule[rrule_key]
+                        _rrule += "{0}={1};".format(rrule_key, rrule_value)
+                    rrule = _rrule
                 # get duration
                 duration = vevent.get(VEventManager.DURATION)
-                # get freq
-                freq = vevent.get(VEventManager.FREQ)
+                if duration:
+                    duration = duration.total_seconds()
                 # get uid
                 uid = vevent.get(VEventManager.UID)
                 if not uid:
                     uid = str(uuid())
+                # get source
+                if not source:
+                    source = vevent.get(VEventManager.SOURCE_TYPE)
                 # prepare the document
                 document.update({
                     VEventManager.UID: uid,
@@ -312,8 +349,7 @@ class VEventManager(MiddlewareRegistry):
                     VEventManager.DTSTART: dtstart,
                     VEventManager.DTEND: dtend,
                     VEventManager.DURATION: duration,
-                    VEventManager.FREQ: freq,
-                    VEventManager.VEVENT: vevent.to_ical()
+                    VEventManager.RRULE: rrule
                 })
 
             self[VEventManager.STORAGE].put_element(
