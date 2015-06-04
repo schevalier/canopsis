@@ -63,6 +63,7 @@ class Context(MiddlewareRegistry):
     ]
 
     ENTITY = Event.ENTITY  #: entity id in event
+    ID = CompositeStorage.DATA_ID  # entity id in entity
 
     def __init__(
         self, context=DEFAULT_CONTEXT, ctx_storage=None, *args, **kwargs
@@ -322,6 +323,8 @@ class Context(MiddlewareRegistry):
 
         :param bool add_parents: ensure to add parents if child do not exists.
         :param bool cache: use query cache if True (False by default).
+        :return: putted entity.
+        :rtype: dict
         """
 
         path = {}
@@ -383,13 +386,19 @@ class Context(MiddlewareRegistry):
 
         if to_update:
             # finally, put the entity if necessary
-            self[Context.CTX_STORAGE].put(
+            result = self[Context.CTX_STORAGE].put(
                 path=path,
                 name=name,
                 data=entity,
                 shared_id=extended_id,
                 cache=cache
             )
+
+        else:
+            result = entity
+            result.update(path)
+
+        return result
 
     def remove(
         self, ids=None, _type=None, context=None, extended=False, cache=False
