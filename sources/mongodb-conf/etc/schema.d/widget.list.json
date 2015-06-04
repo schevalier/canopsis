@@ -40,10 +40,12 @@
 				"selector",
 				"serie",
 				"slacrit",
+				"snmprule",
 				"topology",
 				"user",
 				"userview",
-				"widgetpreferences"
+				"widgetpreferences",
+				"trap"
 			],
 			"default": "group",
 			"role": "simplelist"
