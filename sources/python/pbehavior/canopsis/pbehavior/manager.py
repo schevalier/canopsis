@@ -124,10 +124,6 @@ class PBehaviorManager(VEventManager):
             query=query
         )
         # prepare CONSTS
-        DURATION = PBehaviorManager.DURATION
-        RRULE = PBehaviorManager.RRULE
-        DTEND = PBehaviorManager.DTEND
-        DTSTART = PBehaviorManager.DTSTART
         BEHAVIORS = PBehaviorManager.BEHAVIORS
         # iterate on documents in order to update result with end ts
         for document in documents:
@@ -140,30 +136,12 @@ class PBehaviorManager(VEventManager):
                 doc_behaviors &= _behaviors
             # if doc_behaviors is not empty
             if doc_behaviors:
-                duration = document.get(DURATION)
-                rrule = document.get(RRULE)
-                # get the right end ts
-                if duration:
-                    dtstart = document[DTSTART]
-                    duration = timedelta(seconds=duration)
-                    rrule = document.get(RRULE)
-                    if rrule:
-                        dtts = datetime.fromtimestamp(dtstart)
-                        rrule = rrulestr(rrule, dtstart=dtts)
-                        before = rrule.before(dtts=ts, inc=True)
-                        if before:
-                            endbefore = before + duration
-                            if endbefore >= dtts:
-                                endts = timegm(endbefore.timetuple())
-                elif rrule:  # check if ts in rrule
-                    dtts = datetime.fromtimestamp(int(ts))
-                    rrule = rrulestr(rrule, dtstart=dtts)
-                    if rrule[0] == dtts:
-                        endts = document[DTEND]
-                else:  # get simply dtend
-                    endts = document[DTEND]
+                period = VEventManager.get_period(
+                    document=document, ts=ts, dtts=dtts
+                )
 
-                if endts is not None:
+                if period is not None:
+                    endts = period[1]
                     # update result with upper values
                     for behavior in doc_behaviors:
                         if behavior not in result or result[behavior] < endts:
