@@ -35,7 +35,14 @@ from datetime import datetime, timedelta
 
 from uuid import uuid4 as uuid
 
-from sys import maxsize
+from time import time
+
+from dateutil.relativedelta import relativedelta
+from dateutil.rrule import rrulestr
+
+from copy import deepcopy
+
+MAXTS = 2147483647  #: maximal timestamp
 
 CONF_PATH = 'vevent/vevent.conf'
 CATEGORY = 'VEVENT'
@@ -109,7 +116,7 @@ class VEventManager(MiddlewareRegistry):
     @staticmethod
     def get_document(
         uid=None, source=None,
-        duration=0, rrule=None, dtstart=0, dtend=maxsize,
+        duration=0, rrule=None, dtstart=0, dtend=MAXTS,
         **kwargs
     ):
         """Get a document related to input values.
@@ -172,9 +179,10 @@ class VEventManager(MiddlewareRegistry):
         self, uids,
         limit=0, skip=0, sort=None, projection=None, with_count=False
     ):
-        """Get documents by uids.
+        """Get documents by uid(s).
 
-        :param list uids: list of document uids.
+        :param uids: document uid(s).
+        :type uids: str or list
         :param int limit: max number of elements to get.
         :param int skip: first element index among searched list.
         :param sort: contains a list of couples of field (name, ASC/DESC)
@@ -183,8 +191,10 @@ class VEventManager(MiddlewareRegistry):
         :param dict projection: key names to keep from elements.
         :param bool with_count: If True (False by default), add count to the
             result.
-        :return: documents where uids are in uids.
-        :rtype: list
+        :return: document(s) corresponding to input uids. If uids is a string,
+            result is a dict, otherwise result is a list. If with_count,
+            result is the tuple (previous result, total number of documents).
+        :rtype: dict or list or tuple
         """
 
         documents = self[VEventManager.STORAGE].get_element(
@@ -201,15 +211,16 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     def values(
-        self, sources=None, dtstart=None, dtend=None, query={},
+        self, sources=None, dtstart=None, dtend=None, query=None,
         limit=0, skip=0, sort=None, projection=None, with_count=False
     ):
-        """Get source vevent document values.
+        """Get document values of source vevent(s).
 
-        :param list sources: sources from where get values. If None, use all
+        :param sources: source(s) from where get values. If None, use all
             sources.
+        :type sources: str or list
         :param float dtstart: vevent dtstart (default 0).
-        :param float dtend: vevent dtend (default sys.maxsize).
+        :param float dtend: vevent dtend (default sys.MAXTS).
         :param dict query: additional filtering query to apply in the search.
         :param int limit: max number of elements to get.
         :param int skip: first element index among searched list.
@@ -222,10 +233,15 @@ class VEventManager(MiddlewareRegistry):
         :return: matchable documents.
         :rtype: list
         """
+
+        result = {}  # default result is an empty dict
+
+        # build query
         query = self._build_vevent_query(
             sources=sources,
             dtstart=dtstart,
-            dtend=dtend
+            dtend=dtend,
+            query=query
         )
 
         documents = self[VEventManager.STORAGE].find_elements(
@@ -241,18 +257,33 @@ class VEventManager(MiddlewareRegistry):
 
         return result
 
-    def _build_vevent_query(self, sources=None, dtstart=None, dtend=None):
+    def _build_vevent_query(
+        self, sources=None, dtstart=None, dtend=None, query=None
+    ):
+        """Build a storage query related to input parameters.
 
-        result = {}
+        :param sources: query source(s).
+        :type sources: str or list
+        :param float dtstart: query dtstart.
+        :param float dtend: query dtend.
+        :param dict query: default query to use.
+        """
+
+        # initialize result
+        result = deepcopy(query) if query else {}
 
         # put sources in query if necessary
         if sources is not None:
-            result[VEventManager.SOURCE] = {'$in': sources}
-        # put dtstart and dtend in query
+            if isinstance(sources, basestring):
+                result[VEventManager.SOURCE] = {'$in': sources}
+            else:
+                result[VEventManager.SOURCE] = sources
+
+        # put dtstart and dtend in result
         if dtstart is None:
             dtstart = 0
         if dtend is None:
-            dtend = maxsize
+            dtend = MAXTS
 
         result[VEventManager.DTSTART] = {'$lte': dtend}
         result[VEventManager.DTEND] = {'$gte': dtstart}
@@ -265,7 +296,7 @@ class VEventManager(MiddlewareRegistry):
         :param list sources: sources from where get values. If None, use all
             sources.
         :param int dtstart: vevent dtstart (default 0).
-        :param int dtend: vevent dtend (default sys.maxsize).
+        :param int dtend: vevent dtend (default sys.MAXTS).
         :param dict query: additional filtering query to apply in the search.
         :return: sources.
         :rtype: set
@@ -279,18 +310,42 @@ class VEventManager(MiddlewareRegistry):
 
         return result
 
+    @staticmethod
+    def _deserialize_duration(sduration):
+        """Deserialize input serialized duration.
+
+        :param sduration: serialized duration.
+        :type sduration: int or dict
+        :return: duration.
+        :rtype: relativedelta or timedelta
+        """
+        result = None
+
+        if isinstance(sduration, dict):
+            result = relativedelta(**sduration)
+        else:
+            result = timedelta(seconds=sduration)
+
+        return result
+
     def put(self, vevents, source=None, cache=False):
         """Add vevents (and optionally data) related to input source.
 
         :param str source: vevent source if not None.
-        :param list vevents: vevents (document, str or ical vevent).
+        :param vevents: vevent(s) (document, str or ical vevent).
+        :type vevents: dict, str, Event or list
         :param dict info: vevent info.
         :param bool cache: if True (default False), use storage cache.
-        :return: new documents.
-        :rtype: list
+        :return: new documents. Type is dict if vevents is not a list. List
+            otherwise.
+        :rtype: dict or list
         """
 
         result = []
+
+        isunique = isinstance(vevents, (dict, str, Event))
+        if isunique:
+            vevents = [vevents]
 
         for vevent in vevents:
 
@@ -305,15 +360,21 @@ class VEventManager(MiddlewareRegistry):
                     uid = str(uuid())
                     document[VEventManager.UID] = uid
                 # get source
-                source = document.get(VEventManager.SOURCE, source)
+                source = document.setdefault(VEventManager.SOURCE, source)
                 # get dtstart
-                dtstart = document[VEventManager.DTSTART]
+                dtstart = document.setdefault(VEventManager.DTSTART, 0)
                 # get dtend
-                dtend = document[VEventManager.DTEND]
-                # get duration
-                duration = document[VEventManager.DURATION]
+                dtend = document.setdefault(VEventManager.DTEND)
                 # get rrule
-                rrule = document[VEventManager.RRULE]
+                rrule = document.setdefault(VEventManager.RRULE, "")
+                # get duration
+                duration = document.setdefault(VEventManager.DURATION, 0)
+                if duration and not dtend:  # calculate dtend if not present
+                    datetimestart = datetime.fromtimestamp(dtstart)
+                    duration = self._deserialize_duration(duration)
+                    datetimeend = datetimestart + duration
+                    dtend = timegm(datetimeend.timetuple())
+                    document[VEventManager.DTEND] = dtend
 
             # if document has to be generated ...
             else:
@@ -367,13 +428,22 @@ class VEventManager(MiddlewareRegistry):
 
             result.append(document)
 
+        # transform result if vevents is unique
+        if isunique:
+            result = result[0] if result else None
+
         return result
 
     def remove(self, uids=None, cache=False):
         """Remove elements from storage where uids are given.
 
-        :param list uids: list of document uids to remove from storage
-            (default all empty storage documents).
+        :param uids: document uid(s) to remove from storage
+            (default all empty storage documents). If None, remove all
+            documents.
+        :type uids: str or list
+        :return: removed document id(s). str if uids is a string, list
+            otherwise.
+        :rtype: str or list
         """
 
         result = self[VEventManager.STORAGE].remove_elements(
@@ -385,17 +455,131 @@ class VEventManager(MiddlewareRegistry):
     def remove_by_source(self, sources=None, cache=False):
         """Remove vevent documents related to input sources.
 
-        :param list sources: sources from where remove related vevent
-            documents.
+        :param sources: source(s) from where remove related vevent
+            documents. Remove all documents if None.
+        :type sources: str or list
+        :return: removed document id(s) in the same type of sources, or list
+            if sources is None.
+        :rtype: str or list
         """
 
         _filter = {}
 
         if sources is not None:
-            _filter[VEventManager.SOURCE] = {'$in': sources}
+            if isinstance(sources, basestring):
+                _filter[VEventManager.SOURCE] = sources
+            else:
+                _filter[VEventManager.SOURCE] = {'$in': sources}
 
         result = self[VEventManager.STORAGE].remove_elements(
             _filter=_filter, cache=cache
         )
+
+        return result
+
+    def get_periods(self, sources, ts=None, query=None):
+        """Get couple(s) of (start, end) timestamps around an input ts
+        with given source, or None if no period exists with input source and
+        timestamp.
+
+        :param sources: source id(s).
+        :type sources: str or list
+        :param float ts: timestamp to check. If None, use now.
+        :param dict query: additional vevent document query.
+        :return: depending of type of sources:
+            - str: tuple of (start, end) timestamps including ts, or None if ts
+            is not in a vevent document period.
+            - list:
+        :rtype: tuple or dict
+        """
+
+        result = {}
+        # get the right ts datetime
+        if ts is None:
+            ts = time()
+        dtts = datetime.fromtimestamp(ts)
+
+        # check unicity of sources
+        isunique = isinstance(sources, basestring)
+        if isunique:
+            sources = [sources]
+
+        # get documents
+        documents = self.values(
+            sources=sources,
+            dtstart=ts,
+            dtend=ts,
+            query=query
+        )
+
+        # iterate on documents in order to update result with end ts
+        for document in documents:
+            period = VEventManager.get_period(
+                document=document, ts=ts, dtts=dtts
+            )
+
+            source = document[VEventManager.SOURCE]
+
+            # put period in result
+            if period is not None:
+                result[source] = period
+
+        # update result if isunique
+        if isunique:
+            result = result[sources[0]] if result else None
+
+        return result
+
+    @staticmethod
+    def get_period(self, document, ts=None, dtts=None):
+        """Get tuple of document (dtstart, dtend) related to document
+        properties.
+
+        :param dict document: document from whose get period.
+        :param float ts: moment from where find the around period.
+        :return: document period or None if no period in document.
+        :rtype: tuple or NoneType
+        """
+
+        result = None  # default result
+
+        if ts is None:
+            ts = time()
+            dtts = datetime.fromtimestamp(ts)
+        elif dtts is None:
+            dtts = datetime.fromtimestamp(ts)
+
+        # prepare end ts to update in result
+        duration = document.get(VEventManager.DURATION)
+        rrule = document.get(VEventManager.RRULE)
+        dtstart = document.get(VEventManager.DTSTART, 0)
+        datetimestart = datetime.fromtimestamp(dtstart)
+        dtend = document.get(VEventManager.DTEND, MAXTS)
+        datetimeend = datetime.fromtimestamp(dtend)
+        # get the right dtend if duration exists
+        if duration:
+            duration = VEventManager._deserialize_duration(sduration=duration)
+            # add duration on datetimeend
+            datetimeend = min(datetimestart + duration, datetimeend)
+            dtend = timegm(datetimeend.timetuple())
+        # in case of rrule, get the right dtstart and dtend
+        rrule = document.get(VEventManager.RRULE)
+        if rrule:
+            rrule = rrulestr(rrule)
+            before = rrule.before(dtts=ts, inc=True)
+            if before:
+                dtstart = timegm(before.timetuple())
+                datetimeend = before
+                # add duration
+                if duration:
+                    datetimeend += duration
+                    dtend = min(dtend, timegm(datetimeend.timetuple()))
+                # check if datetimeend is greater or equal than dtts
+                if datetimeend >= dtts:
+                    dtstart = timegm(datetimestart.timetuple())
+                    result = dtstart, dtend
+
+        else:  # otherwise, set result such as the couple of dtstart, dtend
+            result = dtstart, dtend
 
         return result

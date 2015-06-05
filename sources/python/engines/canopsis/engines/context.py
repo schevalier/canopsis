@@ -149,10 +149,12 @@ class engine(Engine):
             del entity['resource']
 
         # put the status entity in the context
-        self.context.put(
+        entity = self.context.put(
             _type=entity[Context.TYPE], entity=entity, context=context,
             cache=True
         )
+        # set entity id in event
+        event[Context.ENTITY] = self.context.get_entity_id(entity)
 
         # udpdate context information with resource and component
         if resource:

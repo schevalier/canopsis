@@ -63,6 +63,7 @@ class Context(MiddlewareRegistry):
     ]
 
     ENTITY = Event.ENTITY  #: entity id in event
+    ID = CompositeStorage.DATA_ID  # entity id in entity
 
     def __init__(
         self, context=DEFAULT_CONTEXT, ctx_storage=None, *args, **kwargs
@@ -117,11 +118,14 @@ class Context(MiddlewareRegistry):
         # try to get the right type if the event corresponds to the old system
         if _type in self.context:
             event_type = _event['event_type']
-            if event_type not in ['check', 'downtime', 'ack']:
+            if event_type not in ['check', 'downtime', 'ack', 'sla']:
                 _type = event_type
 
         # set type in event
         _event[Context.TYPE] = _type
+
+        if Context.NAME not in _event and _type in ['component', 'resource']:
+            _event[Context.NAME] = _event[_type]
 
         # set name if not given
         if Context.ENTITY not in _event:
@@ -322,6 +326,8 @@ class Context(MiddlewareRegistry):
 
         :param bool add_parents: ensure to add parents if child do not exists.
         :param bool cache: use query cache if True (False by default).
+        :return: putted entity.
+        :rtype: dict
         """
 
         path = {}
@@ -383,13 +389,19 @@ class Context(MiddlewareRegistry):
 
         if to_update:
             # finally, put the entity if necessary
-            self[Context.CTX_STORAGE].put(
+            result = self[Context.CTX_STORAGE].put(
                 path=path,
                 name=name,
                 data=entity,
                 shared_id=extended_id,
                 cache=cache
             )
+
+        else:
+            result = entity
+            result.update(path)
+
+        return result
 
     def remove(
         self, ids=None, _type=None, context=None, extended=False, cache=False
