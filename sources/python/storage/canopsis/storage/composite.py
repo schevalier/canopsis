@@ -22,12 +22,11 @@ from uuid import uuid4 as uuid
 
 from canopsis.configuration.parameters import Parameter
 from canopsis.common.utils import ensure_iterable, isiterable, get_first
-from canopsis.storage import Storage
+from canopsis.storage.core import Storage
 
 
 class CompositeStorage(Storage):
-    """
-    Storage dedicated to manage composite data identified by a name in a
+    """Storage dedicated to manage composite data identified by a name in a
     path of ordered fields.
 
     For example, a metric is identified by a unique name in the path
@@ -62,8 +61,10 @@ class CompositeStorage(Storage):
     @property
     def path(self):
         """
-        tuple of ordered field names.
+        :return: tuple of ordered field names.
+        :rtype: tuple
         """
+
         return self._path
 
     @path.setter
@@ -82,16 +83,16 @@ class CompositeStorage(Storage):
         return result
 
     def get_shared_data(self, shared_ids):
-        """
-        Get all shared data related to input shared ids.
+        """Get all shared data related to input shared ids.
 
         :param shared_ids: one or more data.
         :type shared_ids: list or str
 
-        :return: depending on input shared_ids::
+        :return: depending on input shared_ids:
 
             - one shared id: one list of shared data
             - list of shared ids: list of list of shared data
+        :rtype: list
         """
 
         result = []
@@ -112,16 +113,16 @@ class CompositeStorage(Storage):
     def share_data(
         self, data, shared_id=None, share_extended=False, cache=False
     ):
-        """
-        Set input data as a shared data with input shared id
+        """Set input data as a shared data with input shared id.
 
-        :param data: one data
+        :param dict data: one data.
         :param str shared_id: unique shared id. If None, the id is generated.
         :param bool share_extended: if True (False by default), set shared
-            value to all shared data with input data
+            value to all shared data with input data.
         :param bool cache: use query cache if True (False by default).
 
-        :return: shared_id value (generated if None)
+        :return: shared_id value (generated if None).
+        :rtype: str
         """
 
         result = str(uuid()) if shared_id is None else shared_id
@@ -154,12 +155,13 @@ class CompositeStorage(Storage):
         return result
 
     def unshare_data(self, data, cache=False):
-        """
-        Remove share property from input data
+        """Remove share property from input data.
 
         :param data: one or more data to unshare.
+        :type data: list or dict
         :param bool cache: use query cache if True (False by default).
         """
+
         data = ensure_iterable(data)
 
         for d in data:
@@ -173,14 +175,12 @@ class CompositeStorage(Storage):
         path, names=None, _filter=None, shared=False,
         limit=0, skip=0, sort=None, with_count=False
     ):
-        """
-        Get data related to input names, input path and input filter.
+        """Get data related to input names, input path and input filter.
 
         :param dict path: dictionnary of path valut by path name
         :param names: data names in the input path.
         :type names: str or iterable of str
-        :param _filter: additional filter condition to input path
-        :type _filter: storage filter
+        :param dict _filter: additional filter condition to input path
         :param bool shared: if True, convert result to list of list of data
             where list of data are list of shared data.
         :param int limit: max number of data to get. Useless if name exists.
@@ -201,22 +201,19 @@ class CompositeStorage(Storage):
         self, path, _filter, shared=False, limit=0, skip=0, sort=None,
         with_count=False
     ):
-        """
-        Get a list of data identified among a dictionary of composite values by
-        name.
+        """Get a list of data identified among a dictionary of composite
+        values by name.
 
-        :param path: path
-        :type path: storage filter
-        :param _filter: additional filter condition to input path
-        :type _filter: storage filter
+        :param dict path: path.
+        :param dict _filter: additional filter condition to input path.
         :param bool shared: if True, convert result to list of list of data
             where list of data are list of shared data.
         :param int limit: max number of data to get. Useless if name exists.
-        :param int skip: starting index of research if multi data to get
+        :param int skip: starting index of research if multi data to get.
         :param dict sort: couples of field (name, value) to sort with ASC/DESC
-            Storage fields
+            Storage fields.
         :param bool with_count: If True (False by default), add count to the
-            result
+            result.
 
         :return: a list of data.
         :rtype: list of dict
@@ -225,28 +222,23 @@ class CompositeStorage(Storage):
         raise NotImplementedError()
 
     def put(self, path, name, data, shared_id=None, cache=False):
-        """
-        Put a data related to an id and a path.
+        """Put a data related to an id and a path.
 
-        :param path: path
-        :type path: storage filter
-        :param str name: data id
-        :param dict data: data to update
-        :param str shared_id: shared_id id not None
+        :param dict path: path.
+        :param str name: data id.
+        :param dict data: data to update.
+        :param str shared_id: shared_id id not None.
         :param bool cache: use query cache if True (False by default).
         """
 
         raise NotImplementedError()
 
     def remove(self, path, names=None, shared=False, cache=False):
-        """
-        Remove data from ids or type
+        """Remove data from ids or type.
 
-        :param path: path to remove
-        :type path: storage filter
-        :param names: data id or list of data id
+        :param dict path: path to remove.
+        :param names: data id or list of data id.
         :type names: list or str
-
         :param bool shared: remove shared data if data ids are related to
             shared data.
         :param bool cache: use query cache if True (False by default).
@@ -255,12 +247,10 @@ class CompositeStorage(Storage):
         raise NotImplementedError()
 
     def get_path_with_name(self, data):
-        """
-        Get input data path and id
+        """Get input data path and id
 
-        :type data: dict
-
-        :return: data path, data id
+        :param dict data: data from where get path and name.
+        :return: couple (data path, data id).
         :rtype: tuple
         """
 
@@ -275,11 +265,10 @@ class CompositeStorage(Storage):
         return result
 
     def get_absolute_path(self, path, name=None):
-        """
-        Get input data absolute path.
+        """Get input data absolute path.
 
         :param dict path: path from where get absolute path.
-        :param str name: data id
+        :param str name: data id.
         """
 
         result = ''
