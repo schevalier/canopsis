@@ -228,14 +228,9 @@ class Selector(Record):
 
         entityids = self.pbehavior.whois(query=query)
 
-        entities = self.context.get_entities(list(entityids))
-
-        if entities:
+        if entityids:
             downtime = {
-                '$or': [
-                    {DOWNTIME: False},
-                    {DOWNTIME: {'$exists': False}}
-                ]
+                Context.ENTITY: {'$nin': entityids}
             }
 
             if '$and' not in cfilter:
