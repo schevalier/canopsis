@@ -674,15 +674,33 @@ class Storage(DataBase):
 
         self.remove_elements(ids=ids)
 
-    def put_element(self, _id, element, cache=False):
-        """Put an element identified by input id
+    def update_elements(self, query, rule, multi=True, cache=False):
+        """Update all elements which match with input query in applying input
+        rule.
 
-        :param str _id: element id to update.
-        :param dict element: element to put (couples of field (name,value)).
+        :param query: document selection filter. If str or list, the query is
+            the document ids.
+        :type query: dict, str or list
+        :param dict rule: set of property name and value to set.
+        :param bool multi: if True (default), update all documents which match
+            with input query. Otherwise, update the first matching document.
+        :param bool cache: use query cache if True (False by default).
+        :return: updated document(s). List if multi, otherwise dict.
+        :rtype: list or dict
+        """
+
+        raise NotImplementedError()
+
+    def put_elements(self, elements, cache=False):
+        """Put element(s).
+
+        :param elements: element(s) to put (couples of field (name,value)).
+            Such document(s) might have a Storage.DATA_ID.
+        :type elements: list or dict
         :param bool cache: use query cache if True (False by default).
 
-        :return: True if updated
-        :rtype: bool
+        :return: Number of putted documents.
+        :rtype: int
         """
 
         raise NotImplementedError()

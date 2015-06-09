@@ -349,11 +349,43 @@ class MongoStorage(MongoDataBase, Storage):
 
         self._remove(query, cache=cache)
 
-    def put_element(self, _id, element, cache=False, *args, **kwargs):
+    def update_elements(
+        self, query, rule, multi=True, cache=False, *args, **kwargs
+    ):
 
-        return self._update(
-            spec={MongoStorage.ID: _id}, document={'$set': element},
-            multi=False, cache=cache)
+        # choose the right spec
+        if isinstance(query, dict):  # if query is a rich filter
+            spec = query
+        else:  # otherwise, query is related to a mongo _id
+            spec = {MongoStorage.ID: query}
+            multi = multi and not isinstance(query, basestring)
+
+        result = self._update(
+            spec=spec, document=rule, multi=multi, cache=cache
+        )
+
+        return result
+
+    def put_elements(self, elements, cache=False, *args, **kwargs):
+
+        isunique = isinstance(elements, dict)
+        if isunique:
+            elements = [elements]
+
+        result = []
+
+        for element in elements:
+            _id = element.get(Storage.DATA_ID)
+            single_result = self._update(
+                spec={MongoStorage.ID: _id}, document={'$set': element},
+                multi=False, cache=cache
+            )
+            result.append(single_result)
+
+        if isunique:
+            result = result[0] if result else None
+
+        return result
 
     def bool_compare_and_swap(self, _id, oldvalue, newvalue):
 
