@@ -32,7 +32,7 @@ except ImportError:
 from canopsis.common.init import basestring
 from canopsis.common.utils import isiterable
 from canopsis.configuration.parameters import Parameter
-from canopsis.middleware import Middleware
+from canopsis.middleware.core import Middleware
 
 
 class DataBase(Middleware):
