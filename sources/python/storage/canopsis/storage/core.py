@@ -630,7 +630,8 @@ class Storage(DataBase):
 
     def find_elements(
         self,
-        query, limit=0, skip=0, sort=None, projection=None, with_count=False
+        query=None, limit=0, skip=0, sort=None, projection=None,
+        with_count=False
     ):
         """Find elements corresponding to input request and in taking care of
         limit, skip and sort find parameters.
@@ -699,16 +700,21 @@ class Storage(DataBase):
 
         self.put_element(element=element)
 
-    def count_elements(self, request=None):
-        """Count elements corresponding to the input request.
+    def count_elements(self, query=None):
+        """
+        Count elements corresponding to the input query
 
-        :param dict request: request which contain set of couples (key, value)
+        :param dict query: query which contain set of couples (key, value)
 
-        :return: Number of elements corresponding to the input request
+        :return: Number of elements corresponding to the input query
         :rtype: int
         """
 
-        raise NotImplementedError()
+        cursor = self.find_elements(query=query)
+
+        result = len(cursor)
+
+        return result
 
     def __len__(self):
         """Python shortcut to the count_elements method.
