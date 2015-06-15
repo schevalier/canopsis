@@ -40,8 +40,9 @@ class SnmpManager(MiddlewareRegistry):
         super(SnmpManager, self).__init__(*args, **kwargs)
 
     def put(self, oid, rule):
-        self[SnmpManager.SNMP_STORAGE].put_element(
-            _id=oid, element=rule)
+        self[SnmpManager.SNMP_STORAGE].update_elements(
+            query=oid, setrule=rule
+        )
 
     def get(self, oids=None, query=None):
         return self[SnmpManager.SNMP_STORAGE].get_elements(

@@ -19,9 +19,10 @@
 # ---------------------------------
 
 from canopsis.configuration.configurable.decorator import (
-    conf_paths, add_category)
+    conf_paths, add_category
+)
 from canopsis.middleware.registry import MiddlewareRegistry
-import uuid
+from uuid import uuid4 as uuid
 
 CONF_PATH = 'linklist/linklist.conf'
 CATEGORY = 'LINKLIST'
@@ -36,13 +37,8 @@ class Linklist(MiddlewareRegistry):
     LINKLIST_STORAGE = 'linklist_storage'  #: linklist storage name
 
     def find(
-        self,
-        limit=None,
-        skip=None,
-        ids=None,
-        sort=None,
-        with_count=False,
-        _filter={},
+        self, limit=None, skip=None, ids=None, sort=None, with_count=False,
+        _filter=None,
     ):
         """Retrieve information from data sources.
 
@@ -58,6 +54,9 @@ class Linklist(MiddlewareRegistry):
         :rtype: Cursor or dict
         """
 
+        if _filter is None:
+            _filter = {}
+
         result = self[Linklist.LINKLIST_STORAGE].get_elements(
             ids=ids,
             skip=skip,
@@ -69,11 +68,7 @@ class Linklist(MiddlewareRegistry):
 
         return result
 
-    def put(
-        self,
-        document,
-        cache=False
-    ):
+    def put(self, document, cache=False):
         """Persistance layer for upsert operations.
 
         :param dict document: document to put.
@@ -82,18 +77,15 @@ class Linklist(MiddlewareRegistry):
         :rtype: dict
         """
         if not document.get('id'):
-            document['_id'] = str(uuid.uuid4())
+            document['_id'] = str(uuid())
         else:
             document['_id'] = document.pop('id')
 
-        return self[Linklist.LINKLIST_STORAGE].put_element(
-            _id=document['_id'], element=document, cache=cache
+        return self[Linklist.LINKLIST_STORAGE].put_elements(
+            query=document['_id'], setrule=document, cache=cache
         )
 
-    def remove(
-        self,
-        ids
-    ):
+    def remove(self, ids):
         """Remove fields persisted in a default storage.
 
         :param element_id: identifier for the document to remove

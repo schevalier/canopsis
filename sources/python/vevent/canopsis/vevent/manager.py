@@ -196,7 +196,7 @@ class VEventManager(MiddlewareRegistry):
         :rtype: dict or list or tuple
         """
 
-        documents = self[VEventManager.STORAGE].get_element(
+        documents = self[VEventManager.STORAGE].get_elements(
             ids=uids,
             limit=limit, skip=skip, sort=sort, projection=projection,
             with_count=with_count
@@ -419,8 +419,8 @@ class VEventManager(MiddlewareRegistry):
                     VEventManager.RRULE: rrule
                 })
 
-            self[VEventManager.STORAGE].put_element(
-                _id=uid, element=document
+            self[VEventManager.STORAGE].update_elements(
+                query=uid, setrule=document
             )
 
             document['_id'] = uid

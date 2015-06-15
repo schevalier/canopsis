@@ -117,7 +117,7 @@ class StorageTest(TestCase):
 
         self.assertEqual(len(request), 0)
 
-        self.storage.put_element(_id=_id, element=document)
+        self.storage.update_elements(query=_id, setrule=document)
 
         request = self.storage.get_elements()
         self.assertEqual(len(request), 1)

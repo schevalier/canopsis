@@ -74,10 +74,10 @@ class MongoDataBase(DataBase):
 
         try:
             result = MongoClient(**connection_args)
-        except ConnectionFailure as e:
+        except ConnectionFailure as connfail:
             self.logger.error(
                 'Raised {2} during connection attempting to {0}:{1}.'.
-                format(self.host, self.port, e)
+                format(self.host, self.port, connfail)
             )
         else:
             self._database = result[self.db]
@@ -127,9 +127,9 @@ class MongoDataBase(DataBase):
         try:
             result = self._database.command("collstats", _backend)['size']
 
-        except Exception as e:
+        except Exception as excp:
             self.logger.warning(
-                "Impossible to read Collection Size: {0}".format(e))
+                "Impossible to read Collection Size: {0}".format(excp))
             result = None
 
         return result
@@ -224,10 +224,10 @@ class MongoStorage(MongoDataBase, Storage):
         super(MongoStorage, self).drop(table=self.get_table(), *args, **kwargs)
 
     def get_elements(
-        self,
-        ids=None, query=None, limit=0, skip=0, sort=None, with_count=False,
-        hint=None, projection=None,
-        *args, **kwargs
+            self,
+            ids=None, query=None, limit=0, skip=0, sort=None, with_count=False,
+            hint=None, projection=None,
+            *args, **kwargs
     ):
 
         _query = {} if query is None else query.copy()
@@ -317,9 +317,9 @@ class MongoStorage(MongoDataBase, Storage):
         return result
 
     def find_elements(
-        self, query=None, limit=0, skip=0, sort=None, projection=None,
-        with_count=False,
-        *args, **kwargs
+            self, query=None, limit=0, skip=0, sort=None, projection=None,
+            with_count=False,
+            *args, **kwargs
     ):
 
         return self.get_elements(
@@ -333,7 +333,7 @@ class MongoStorage(MongoDataBase, Storage):
         )
 
     def remove_elements(
-        self, ids=None, _filter=None, cache=False, *args, **kwargs
+            self, ids=None, _filter=None, cache=False, *args, **kwargs
     ):
 
         query = {}
@@ -350,7 +350,10 @@ class MongoStorage(MongoDataBase, Storage):
         self._remove(query, cache=cache)
 
     def update_elements(
-        self, query, rule, multi=True, cache=False, *args, **kwargs
+            self,
+            query, renamerule=None, setrule=None, unsetrule=None, multi=True,
+            cache=False, upsert=True,
+            *args, **kwargs
     ):
 
         # choose the right spec
@@ -360,30 +363,25 @@ class MongoStorage(MongoDataBase, Storage):
             spec = {MongoStorage.ID: query}
             multi = multi and not isinstance(query, basestring)
 
+        # build the updaterule
+        updaterule = {}
+        if renamerule is not None:
+            updaterule['$rename'] = renamerule
+        if setrule is not None:
+            updaterule['$set'] = setrule
+        if unsetrule is not None:
+            updaterule['$unset'] = unsetrule
+
         result = self._update(
-            spec=spec, document=rule, multi=multi, cache=cache
+            spec=spec, document=updaterule, multi=multi, upsert=upsert,
+            cache=cache
         )
 
         return result
 
     def put_elements(self, elements, cache=False, *args, **kwargs):
 
-        isunique = isinstance(elements, dict)
-        if isunique:
-            elements = [elements]
-
-        result = []
-
-        for element in elements:
-            _id = element.get(Storage.DATA_ID)
-            single_result = self._update(
-                spec={MongoStorage.ID: _id}, document={'$set': element},
-                multi=False, cache=cache
-            )
-            result.append(single_result)
-
-        if isunique:
-            result = result[0] if result else None
+        result = self._insert(documents=elements, cache=cache, *args, **kwargs)
 
         return result
 
@@ -417,21 +415,43 @@ class MongoStorage(MongoDataBase, Storage):
 
         return result
 
-    def _insert(self, document=None, cache=False, **kwargs):
+    def _insert(self, documents=None, cache=False, **kwargs):
 
         if cache and self._cache is None:
             self._init_cache()
 
         cache_op = self._cache.insert if cache else None
 
-        result = self._process_query(
-            query_op=self._run_command,
-            cache_op=cache_op,
-            cache_kwargs={'document': document},
-            query_kwargs={'command': 'insert', 'doc_or_docs': document},
-            cache=cache,
-            **kwargs
-        )
+        isunique = isinstance(documents, dict)
+        if isunique:
+            documents = [documents]
+
+        result = []
+
+        if cache:  # insert all documents one by one
+            for document in documents:
+                query_result = self._process_query(
+                    query_op=self._run_command,
+                    cache_op=cache_op,
+                    cache_kwargs={'document': document},
+                    query_kwargs={
+                        'command': 'insert', 'doc_or_docs': document
+                    },
+                    cache=cache,
+                    **kwargs
+                )
+                result.append(query_result)
+        else:  # insert all documents at a time
+            result = self._process_query(
+                query_op=self._run_command,
+                query_kwargs={
+                    'command': 'insert', 'doc_or_docs': documents
+                },
+                **kwargs
+            )
+
+        if isunique:
+            result = result[0] if result else None
 
         return result
 
@@ -439,10 +459,11 @@ class MongoStorage(MongoDataBase, Storage):
         self, spec, document, cache=False, multi=True, upsert=True, **kwargs
     ):
 
-        if cache and self._cache is None:
-            self._init_cache()
-
         if cache:
+
+            if self._cache is None:
+                self._init_cache()
+
             cache_op = self._cache.find(selector=spec)
             if upsert:
                 cache_op = cache_op.upsert()
@@ -481,8 +502,10 @@ class MongoStorage(MongoDataBase, Storage):
         if cache and self._cache is None:
             self._init_cache()
 
-        cache_op = self._cache.find(selector=document).remove if cache \
+        cache_op = (
+            self._cache.find(selector=document).remove if cache
             else None
+        )
 
         result = self._process_query(
             query_op=self._run_command,
@@ -559,11 +582,14 @@ class MongoStorage(MongoDataBase, Storage):
         except TimeoutError:
             self.logger.warning(
                 'Try to run command {0}({1}) on {2} attempts left'
-                .format(command, kwargs, backend))
+                .format(command, kwargs, backend)
+            )
 
-        except OperationFailure as of:
-            self.logger.error('{0} during running command {1}({2}) of in {3}'
-                .format(of, command, kwargs, backend))
+        except OperationFailure as opf:
+            self.logger.error(
+                '{0} during running command {1}({2}) opf in {3}'
+                .format(opf, command, kwargs, backend)
+            )
 
         return result
 

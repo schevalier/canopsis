@@ -24,7 +24,7 @@ def update_selectors():
         # get new id
         _id = '{0}{1}'.format(to_put, old_id[to_remove_len:])
         # remove old id from selector
-        context[storage_name].put_element(_id=_id, element=selector)
+        context[storage_name].update_elements(query=_id, setrule=selector)
         # get selector topology nodes
         node_id = '/selector/canopsis/engine/{0}'.format(
             selector[Context.NAME].replace('_', ' ')

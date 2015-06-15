@@ -156,10 +156,6 @@ class SQLAlchemyStorage(SQLAlchemyDataBase, Storage):
         if _filter is not None:
             del_.where(_filter)
 
-    def put_element(self, _id, element, *args, **kwargs):
-
-        pass
-
     def bool_compare_and_swap(self, _id, oldvalue, newvalue):
 
         return self.val_compare_and_swap(_id, oldvalue, newvalue) == newvalue

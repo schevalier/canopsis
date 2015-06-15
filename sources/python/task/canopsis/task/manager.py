@@ -175,7 +175,9 @@ class TaskManager(MiddlewareRegistry):
             reload(_file)
 
         # save task info
-        self[TaskManager.FILE_STORAGE].put_element(_id=_id, element=task_info)
+        self[TaskManager.FILE_STORAGE].update_elements(
+            query=_id, setrule=task_info
+        )
 
         # get task if None
         if task is None:

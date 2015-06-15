@@ -156,8 +156,9 @@ class CheckManager(MiddlewareRegistry):
                     )
                     # save new state_document if old != new
                     if state_document != new_state_document:
-                        storage.put_element(
-                            _id=_id, element=new_state_document, cache=cache
+                        new_state_document[id_name] = _id
+                        storage.update_elements(
+                            query=_id, setrule=new_state_document, cache=cache
                         )
                     # save state entity in result
                     result[_id] = new_state_document[state_name]
@@ -173,8 +174,8 @@ class CheckManager(MiddlewareRegistry):
                     criticity=criticity
                 )
                 # save it in storage
-                storage.put_element(
-                    _id=entity_id, element=new_state_document, cache=cache
+                storage.update_elements(
+                    query=entity_id, setrule=new_state_document, cache=cache
                 )
                 # and put entity state in the result
                 result[entity_id] = state
@@ -216,9 +217,9 @@ class CheckManager(MiddlewareRegistry):
         if state not in self.valid_states or not isinstance(state, int):
             raise InvalidState(state, self.valid_states)
 
-        return self[CheckManager.CHECK_STORAGE].put_element(
-            _id=entity_id,
-            element={'state': state},
+        return self[CheckManager.CHECK_STORAGE].update_elements(
+            query=entity_id,
+            setrule={'state': state},
             cache=cache
         )
 

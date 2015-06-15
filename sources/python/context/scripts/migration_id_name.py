@@ -13,7 +13,7 @@ def transform_id_to_name():
         if 'id' in element:
             element[Context.NAME] = element.pop('id')
             _id = element['_id']
-            storage.put_element(_id=_id, element=element)
+            storage.update_elements(query=_id, setrule=element)
 
 if __name__ == '__main__':
     transform_id_to_name()

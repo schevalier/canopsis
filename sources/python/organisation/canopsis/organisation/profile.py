@@ -18,12 +18,14 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-from canopsis.organisation.permission import PermissionEntity
+from canopsis.organisation.permission import RightEntity
 
 
-class Profile(PermissionEntity):
+class Profile(RightEntity):
 
     def __init__(self, **content):
+
+        super(Profile, self).__init__()
 
         for name in content:
             value = content[name]

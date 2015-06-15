@@ -49,11 +49,7 @@ class RulesManager(MiddlewareRegistry):
         )
         return result
 
-    def put(
-        self,
-        document,
-        cache=False
-    ):
+    def put(self, document, cache=False):
         """
         Persistance layer for upsert operations
 
@@ -65,14 +61,11 @@ class RulesManager(MiddlewareRegistry):
             document['_id'] = document['id']
             del document['id']
 
-        self[RulesManager.STORAGE].put_element(
-            _id=document['_id'], element=document, cache=cache
+        self[RulesManager.STORAGE].update_elements(
+            query=document['_id'], setrule=document, cache=cache
         )
 
-    def remove(
-        self,
-        ids
-    ):
+    def remove(self, ids):
         """
         Remove fields persisted in a default storage.
 

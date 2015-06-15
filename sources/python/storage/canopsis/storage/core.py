@@ -410,8 +410,8 @@ class Storage(DataBase):
 
     def _process_query(
         self,
-        query_op, cache_op, query_kwargs={}, cache_kwargs={}, cache=False,
-        **kwargs
+        query_op=None, cache_op=None, query_kwargs=None, cache_kwargs=None,
+        cache=False, **kwargs
     ):
         """Execute a query or the query cache depending on values of
         _cache_size and input cache parameter.
@@ -425,6 +425,9 @@ class Storage(DataBase):
         :return: query/cache operation result.
         """
 
+        if cache_kwargs is None:
+            cache_kwargs = {}
+
         result = None
 
         if cache and self._cache_size > 0:
@@ -435,7 +438,9 @@ class Storage(DataBase):
             self._lock.acquire()  # avoid concurrent calls to cache execution
             try:
                 if cache_op is not None:
-                    cache_op(**cache_kwargs)
+                    if cache_kwargs is not None:
+                        kwargs.update(cache_kwargs)
+                    cache_op(**kwargs)
                     # check for updating cache
                     self._updated_cache = True
                     # increment the counter
@@ -675,14 +680,20 @@ class Storage(DataBase):
 
         self.remove_elements(ids=ids)
 
-    def update_elements(self, query, rule, multi=True, cache=False):
+    def update_elements(
+        self,
+        query, renamerule=None, setrule=None, unsetrule=None, multi=True,
+        cache=False
+    ):
         """Update all elements which match with input query in applying input
         rule.
 
         :param query: document selection filter. If str or list, the query is
             the document ids.
         :type query: dict, str or list
-        :param dict rule: set of property name and value to set.
+        :param dict renamerule: set of property name to rename.
+        :param dict setrule: set of property name and value to set.
+        :param Iterable unsetrule: set of property name to unset.
         :param bool multi: if True (default), update all documents which match
             with input query. Otherwise, update the first matching document.
         :param bool cache: use query cache if True (False by default).
@@ -691,6 +702,22 @@ class Storage(DataBase):
         """
 
         raise NotImplementedError()
+
+    def put_element(self, _id, element, cache=False):
+        """:Deprecated: Use update_elements instead.
+
+        Used to upsert an element in DB.
+
+        :param str _id: element unique id.
+        :param dict element: element to put/update.
+        :param bool cache: if True (default False) use storage cache.
+        :return: putted element with DB fields.
+        :rtype: dict
+        """
+
+        return self.update_elements(
+            query=_id, setrule=element, cache=cache, multi=False
+        )
 
     def put_elements(self, elements, cache=False):
         """Put element(s).
@@ -706,17 +733,17 @@ class Storage(DataBase):
 
         raise NotImplementedError()
 
-    def __setitem__(self, _id, element):
-        """Python shortcut for the put_element method.
+    def __setitem__(self, key, value):
+        """Python shortcut for the put_elements method.
         """
 
-        self.put_element(_id=_id, element=element)
+        self.update_elements(query=key, setrule=value)
 
-    def __iadd__(self, element):
-        """Python shortcut for the put_element method.
+    def __iadd__(self, elements):
+        """Python shortcut for the insert_elements method.
         """
 
-        self.put_element(element=element)
+        self.put_elements(elements=elements)
 
     def count_elements(self, query=None):
         """
@@ -810,26 +837,24 @@ class Storage(DataBase):
 
         result = 0
 
-        from canopsis.storage.core import Storage
         from canopsis.storage.periodic import PeriodicStorage
         from canopsis.storage.timed import TimedStorage
-        from canopsis.storage.timedtyped import TimedTypedStorage
-        from canopsis.storage.typed import TypedStorage
+        from canopsis.storage.composite import CompositeStorage
 
         storage_types = [
             Storage,
             PeriodicStorage,
             TimedStorage,
-            TimedTypedStorage,
-            TypedStorage]
+            CompositeStorage
+        ]
 
         if not isinstance(self, storage_types):
             pass
 
         else:
             for storage_type in storage_types:
-                if isinstance(self, storage_types):
-                    if not isinstance(target, storage_types):
+                if isinstance(self, storage_type):
+                    if not isinstance(target, storage_type):
                         raise Storage.StorageError(
                             'Impossible to copy {0} content into {1}. \
 Storage types must be of the same type.'.format(self, target))
@@ -847,7 +872,7 @@ Storage types must be of the same type.'.format(self, target))
 
         for element in self.get_elements():
             _id = self._element_id(element)
-            target.put_element(_id=_id, element=element)
+            target.update_elements(query=_id, setrule=element)
 
         raise NotImplementedError()
 

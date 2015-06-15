@@ -216,8 +216,8 @@ class GraphManager(MiddlewareRegistry):
         elt_id = elt[GraphElement.ID]
 
         # put elt value in storage
-        self[GraphManager.STORAGE].put_element(
-            _id=elt_id, element=elt, cache=cache
+        self[GraphManager.STORAGE].put_elements(
+            query=elt_id, setrule=elt, cache=cache
         )
         # update graph if graph_id is not None
         if graph_ids is not None:

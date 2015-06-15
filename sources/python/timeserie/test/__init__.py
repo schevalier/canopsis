@@ -1,6 +1,6 @@
 from unittest import main, TestCase
 
-from canopsis.timeserie import TimeSerie
+from canopsis.timeserie.core import TimeSerie
 from canopsis.timeserie.timewindow import TimeWindow, Period
 from random import random, randint
 from time import time, mktime

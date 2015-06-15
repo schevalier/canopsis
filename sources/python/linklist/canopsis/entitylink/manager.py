@@ -126,8 +126,8 @@ class Entitylink(MiddlewareRegistry):
         :param document: contains link information for entities
         """
 
-        self[Entitylink.ENTITY_STORAGE].put_element(
-            _id=_id, element=document, cache=cache
+        self[Entitylink.ENTITY_STORAGE].put_elements(
+            query=_id, setrule=document, cache=cache
         )
 
     def remove(

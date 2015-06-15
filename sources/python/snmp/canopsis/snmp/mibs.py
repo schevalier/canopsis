@@ -46,8 +46,9 @@ class MibsManager(MiddlewareRegistry):
         super(MibsManager, self).__init__(*args, **kwargs)
 
     def put(self, oid, info):
-        self[MibsManager.MIBS_STORAGE].put_element(
-            _id=oid, element=info)
+        self[MibsManager.MIBS_STORAGE].update_elements(
+            query=oid, setrule=info
+        )
 
     def get(self, oids=None, limit=None, query={}, projection=None):
         return self[MibsManager.MIBS_STORAGE].get_elements(

@@ -93,8 +93,8 @@ class DBConfiguration(MiddlewareRegistry):
         :param document: contains link information for entities
         """
 
-        self[DBConfiguration.DBCONFIGURATION_STORAGE].put_element(
-            _id=_id, element=document
+        self[DBConfiguration.DBCONFIGURATION_STORAGE].update_elements(
+            query=_id, setrule=document
         )
 
     # Not tested with old object collection system: TODO

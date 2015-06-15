@@ -194,11 +194,11 @@ class StateTest(CheckManagerTest):
     def test_get_state(self):
         self.clean()
 
-        self.manager[CheckManager.CHECK_STORAGE].put_element(
-            _id='entity_id_1', element={'state': 1}
+        self.manager[CheckManager.CHECK_STORAGE].update_elements(
+            query='entity_id_1', setrule={'state': 1}
         )
-        self.manager[CheckManager.CHECK_STORAGE].put_element(
-            _id='entity_id_2', element={'state': 2}
+        self.manager[CheckManager.CHECK_STORAGE].update_elements(
+            query='entity_id_2', setrule={'state': 2}
         )
 
         # Test single element matching
@@ -217,8 +217,8 @@ class StateTest(CheckManagerTest):
     def test_del_state(self):
         self.clean()
 
-        self.manager[CheckManager.CHECK_STORAGE].put_element(
-            _id='entity_id', element={'state': 1}
+        self.manager[CheckManager.CHECK_STORAGE].update_elements(
+            query='entity_id', setrule={'state': 1}
         )
         states = list(self.manager.get_state())
         self.assertEqual(len(states), 1)
