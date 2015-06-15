@@ -18,12 +18,11 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-from canopsis.storage import Storage
+from canopsis.storage.core import Storage
 
 
 class PeriodicStorage(Storage):
-    """
-    Storage dedicated to manage periodic data.
+    """Storage dedicated to manage periodic data.
     """
 
     __datatype__ = 'periodic'
@@ -34,8 +33,12 @@ class PeriodicStorage(Storage):
     LAST_UPDATE = 'last_update'
 
     def count(self, data_id, period, timewindow=None):
-        """
-        Get number of periodic documents for input data_id.
+        """Get number of periodic documents for input data_id.
+
+        :param str data_id: document id.
+        :param canopsis.timeserie.timewindow.Period period: document period.
+        :param canopsis.timeserie.timewindow.TimeWindow timewindow: request
+            timewinwow.
         """
 
         raise NotImplementedError()
@@ -44,8 +47,7 @@ class PeriodicStorage(Storage):
         self, data_id=None, period=None, timewindow=None,
         *args, **kwargs
     ):
-        """
-        Get size occupied by research filter data_id
+        """Get size occupied by research filter data_id.
         """
 
         raise NotImplementedError()
@@ -53,15 +55,14 @@ class PeriodicStorage(Storage):
     def get(
         self, data_id, period, timewindow=None, limit=0, skip=0, sort=None
     ):
-        """
-        Get a list of points.
+        """Get a list of points.
         """
 
         raise NotImplementedError()
 
     def put(self, data_id, period, points, cache=False):
-        """
-        Put periodic points in periodic collection with specific period values.
+        """Put periodic points in periodic collection with specific period
+        values.
 
         points is an iterable of (timestamp, value)
 
@@ -71,8 +72,8 @@ class PeriodicStorage(Storage):
         raise NotImplementedError()
 
     def remove(self, data_id, period=None, timewindow=None, cache=False):
-        """
-        Remove periodic data related to data_id, timewindow and period.
+        """Remove periodic data related to data_id, timewindow and period.
+
         If timewindow is None, remove all periodic_data with input period.
         If period is None, remove all data whatever related period.
 

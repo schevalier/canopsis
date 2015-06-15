@@ -18,7 +18,7 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-from canopsis.storage import Storage
+from canopsis.storage.core import Storage
 
 
 class FileStream(object):
@@ -71,8 +71,7 @@ class FileStream(object):
 
 
 class FileStorage(Storage):
-    """
-    Storage dedicated to manage distributed file stream objects.
+    """Storage dedicated to manage distributed file stream objects.
     """
 
     __datatype__ = 'file'  #: registered such as a file storage
@@ -83,7 +82,6 @@ class FileStorage(Storage):
         :param names: file stream names.
         :type names: str or list of str
         :param int version: file stream version. last if -1 (by default).
-
         :rtype: FileStream or list of FileStream
         """
         raise NotImplementedError()
@@ -92,7 +90,6 @@ class FileStorage(Storage):
         """True if input file name exists.
 
         :param str name: file name to check existance.
-
         :return: True iif a file name equals to input name exists.
         :rtype: bool
         """

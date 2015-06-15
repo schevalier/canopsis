@@ -19,7 +19,7 @@
 # ---------------------------------
 
 from canopsis.common.utils import isiterable
-from canopsis.mongo import MongoStorage
+from canopsis.mongo.core import MongoStorage
 from canopsis.storage.timed import TimedStorage
 from canopsis.timeserie.timewindow import get_offset_timewindow
 
@@ -70,7 +70,7 @@ class MongoTimedStorage(MongoStorage, TimedStorage):
         if skip:
             cursor.skip(skip)
         if sort is not None:
-            sort = MongoStorage._resolve_sort(sort)
+            sort = MongoStorage._get_directed(sort)
             cursor.sort(sort)
 
         # apply a specific index

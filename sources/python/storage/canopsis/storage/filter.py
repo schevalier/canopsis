@@ -18,14 +18,15 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+from canopsis.common.init import basestring
+
 from collections import Iterable
 
 
 class Filter(dict):
-    """
-    Filter dedicated to storages.
+    """Filter storages.
 
-    Its structure respects mongo filters ()
+    Its structure respects mongo filters.
     """
 
     REGEX = "$regex"  #: regex field
