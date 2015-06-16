@@ -85,12 +85,12 @@ class Rights(MiddlewareRegistry):
             a_id: id of the action to reference
             a_desc: description of the action to reference
         Returns:
-            A document describing the effect of the put_elements
+            A document describing the effect of the update_elements
             if the action was created
             ``None`` otherwise
         """
 
-        return self['action_storage'].put_elements(
+        return self['action_storage'].update_elements(
             query=a_id,
             setrule={
                 'crecord_name': a_id,
@@ -275,12 +275,12 @@ class Rights(MiddlewareRegistry):
             # If all the permissions were removed from the right, delete it
             if not entity['rights'][right_id]['checksum']:
                 del entity['rights'][right_id]
-                self[e_type + "_storage"].put_elements(
+                self[e_type + "_storage"].update_elements(
                     query=entity['_id'], setrule=entity
                 )
                 return True
 
-            self[e_type + "_storage"].put_elements(
+            self[e_type + "_storage"].update_elements(
                 query=entity['_id'], setrule=entity
             )
             result = entity['rights'][right_id]['checksum']
@@ -360,7 +360,7 @@ class Rights(MiddlewareRegistry):
         else:
             new_profile.setdefault('group', []).append(p_groups)
 
-        self.profile_storage.put_elements(p_name, new_profile)
+        self.profile_storage.update_elements(query=p_name, setrule=new_profile)
 
         return p_name
 
@@ -389,7 +389,7 @@ class Rights(MiddlewareRegistry):
                     query={'crecord_type': t_type}):
                 if e_type in entity and e_name in entity[e_type]:
                     entity[e_type].remove(e_name)
-                    self[to_storage].put_elements(
+                    self[to_storage].update_elements(
                         query=entity['_id'], setrule=entity
                     )
 
@@ -415,7 +415,7 @@ class Rights(MiddlewareRegistry):
             ):
                 if user and 'role' in user and r_name == user['role']:
                     user.pop('role', None)
-                    self['user_storage'].put_elements(
+                    self['user_storage'].update_elements(
                         query=user['_id'], setrule=user
                     )
 
@@ -594,7 +594,7 @@ class Rights(MiddlewareRegistry):
 
         if e_type in entity and e_name in entity[e_type]:
             entity[e_type].remove(e_name)
-            self[from_type + '_storage'].put_elements(
+            self[from_type + '_storage'].update_elements(
                 query=from_name, setrule=entity
             )
             return True
@@ -956,7 +956,7 @@ class Rights(MiddlewareRegistry):
             e_type type of the entity to update
             fields map of the fields to update
         Returns:
-            A document describing the effect of the put_elements
+            A document describing the effect of the update_elements
             if the entity was thoroughly updated
             ``False`` otherwise
         """
@@ -966,7 +966,7 @@ class Rights(MiddlewareRegistry):
         if entity and not isinstance(entity, list):
             for key in fields:
                 entity[key] = fields[key]
-            return self[e_type + '_storage'].put_elements(
+            return self[e_type + '_storage'].update_elements(
                 query=e_id, setrule=entity
             )
         else:

@@ -81,7 +81,7 @@ class Linklist(MiddlewareRegistry):
         else:
             document['_id'] = document.pop('id')
 
-        return self[Linklist.LINKLIST_STORAGE].put_elements(
+        return self[Linklist.LINKLIST_STORAGE].update_elements(
             query=document['_id'], setrule=document, cache=cache
         )
 

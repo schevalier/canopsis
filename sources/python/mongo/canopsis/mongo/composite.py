@@ -46,10 +46,10 @@ class MongoCompositeStorage(MongoStorage, CompositeStorage):
         return result
 
     def get(
-        self,
-        path, names=None, _filter=None, shared=False,
-        limit=0, skip=0, sort=None, with_count=False,
-        *args, **kwargs
+            self,
+            path, names=None, _filter=None, shared=False,
+            limit=0, skip=0, sort=None, with_count=False,
+            *args, **kwargs
     ):
 
         result = []
@@ -70,9 +70,9 @@ class MongoCompositeStorage(MongoStorage, CompositeStorage):
         # get the right hint
         self_path = self.path
         hint = []
-        for index, p in enumerate(self_path):
-            if p in path:
-                hint.append((p, 1))
+        for _, _path in enumerate(self_path):
+            if _path in path:
+                hint.append((_path, 1))
         else:
             hint.append((CompositeStorage.NAME, 1))
 
@@ -111,9 +111,9 @@ class MongoCompositeStorage(MongoStorage, CompositeStorage):
         return result
 
     def find(
-        self,
-        path,
-        _filter, shared=False, limit=0, skip=0, sort=None, with_count=False
+            self,
+            path,
+            _filter, shared=False, limit=0, skip=0, sort=None, with_count=False
     ):
 
         result = self.get(
@@ -124,7 +124,7 @@ class MongoCompositeStorage(MongoStorage, CompositeStorage):
         return result
 
     def put(
-        self, path, name, data, share_id=None, cache=False, *args, **kwargs
+            self, path, name, data, share_id=None, cache=False, *args, **kwargs
     ):
 
         # get unique id
@@ -142,10 +142,12 @@ class MongoCompositeStorage(MongoStorage, CompositeStorage):
         _set = {
             '$set': data_to_put
         }
-        self._update(spec=query, document=_set, multi=False, cache=cache)
+        return self._update(
+            spec=query, document=_set, multi=False, cache=cache
+        )
 
     def remove(
-        self, path, names=None, shared=False, cache=False, *args, **kwargs
+            self, path, names=None, shared=False, cache=False, *args, **kwargs
     ):
 
         query = path.copy()
@@ -159,7 +161,7 @@ class MongoCompositeStorage(MongoStorage, CompositeStorage):
                 parameters = {'justOne': 1}
                 query[CompositeStorage.NAME] = names
 
-        self._remove(document=query, cache=cache, **parameters)
+        result = self._remove(document=query, cache=cache, **parameters)
 
         # remove extended data
         if shared:
@@ -172,3 +174,5 @@ class MongoCompositeStorage(MongoStorage, CompositeStorage):
                 _ids.append([data[MongoStorage.ID] for data in extended])
             document = {MongoStorage.ID: {'$in': _ids}}
             self._remove(document=document, cache=cache)
+
+        return result

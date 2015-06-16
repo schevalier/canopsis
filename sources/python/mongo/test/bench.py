@@ -62,7 +62,7 @@ class Bench(TestCase):
         # initialize commands
         self.commands = (
             ("insert", lambda spec, document: self.storage._insert(
-                document=document, cache=True)),
+                documents=document, cache=True)),
             ("update", lambda spec, document: self.storage._update(
                 spec=spec, document=document, multi=False, cache=True)),
             ("find", lambda spec, document: self.storage._find(

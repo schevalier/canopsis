@@ -136,7 +136,7 @@ class MongoTimedStorage(MongoStorage, TimedStorage):
                 MongoTimedStorage.Key.TIMESTAMP: timestamp,
                 MongoTimedStorage.Key.VALUE: value
             }
-            self._insert(document=values_to_insert, cache=cache)
+            self.put_elements(elements=values_to_insert, cache=cache)
 
     def remove(self, data_ids, timewindow=None, cache=False, *args, **kwargs):
 

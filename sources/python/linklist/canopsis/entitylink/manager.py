@@ -113,12 +113,7 @@ class Entitylink(MiddlewareRegistry):
         )
         return result
 
-    def put(
-        self,
-        _id,
-        document,
-        cache=False
-    ):
+    def put(self, _id, document, cache=False):
         """
         Persistance layer for upsert operations
 
@@ -126,14 +121,11 @@ class Entitylink(MiddlewareRegistry):
         :param document: contains link information for entities
         """
 
-        self[Entitylink.ENTITY_STORAGE].put_elements(
+        self[Entitylink.ENTITY_STORAGE].update_elements(
             query=_id, setrule=document, cache=cache
         )
 
-    def remove(
-        self,
-        ids
-    ):
+    def remove(self, ids):
         """
         Remove fields persisted in a default storage.
 

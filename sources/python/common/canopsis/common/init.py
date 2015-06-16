@@ -18,6 +18,9 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+"""This module provides tools dedicated to Canopsis runtime initialization.
+"""
+
 # in order to ease python 3 handling, here are libraries to import
 # import print function instead of simple print
 from __future__ import print_function
@@ -49,63 +52,101 @@ basestring = basestring
 
 
 class Init(object):
+    """Canopsis context initialization.
+
+    Provides globally the same logic for configuration such as logging, status,
+    signal_handler, etc.
+    """
 
     class getHandler(object):
         def __init__(self, logger):
             super(Init.getHandler, self).__init__()
 
             self.logger = logger
-            self.RUN = True
+            self.running = True
+            self.callback = None
 
         def status(self):
-            return self.RUN
+            """Get running status.
+
+            :return: running status.
+            :rtype: bool
+            """
+            return self.running
 
         def signal_handler(self, signum, frame):
+            """Run this callback whatever signum and frame.
+            """
             self.logger.warning("Receive signal to stop daemon...")
             if self.callback:
                 self.callback()
             self.stop()
 
         def run(self, callback=None):
+            """Attach callback to system signals SIGINT and SIGTERM.
+            """
             self.callback = callback
             signal(SIGINT, self.signal_handler)
             signal(SIGTERM, self.signal_handler)
 
         def stop(self):
-            self.RUN = False
+            """Stop Canopsis execution.
+            """
+            self.running = False
 
-        def set(self, statut):
-            self.RUN = statut
+        def set(self, status):
+            """Change of global status
+
+            :param bool status: new status to apply.
+            """
+            self.running = status
 
         def wait(self):
-            while self.RUN:
+            """Wait while this is running.
+            """
+            while self.running:
                 try:
                     sleep(1)
                 except:
                     break
             self.stop()
 
+    def __init__(self):
+
+        super(Init, self).__init__()
+
+        self.logger = None
+        self.level = None
+
     def getLogger(self, name, level="INFO", logging_level=None):
+        """Get a logger.
+
+        :rtype: Logger.
+        """
         if logging_level is None:
             self.level = level
         else:
             self.level = logging_level
 
         basicConfig(
-            format='%(asctime)s %(levelname)s %(name)s [%(module)s %(lineno)s] %(message)s')
+            format='%(asctime)s %(levelname)s %(name)s [%(module)s %(lineno)s]\
+             %(message)s'
+        )
         self.logger = getLogger(name)
         self.logger.setLevel(self.level)
 
         return self.logger
 
-    def get_confpath(self, conftype):
-        """
-        Get path to config file.
+    @staticmethod
+    def get_confpath(conftype):
+        """Get path to config file.
 
-        :param conftype: Type of configuration (webserver, websocket, amqp, storage, ...)
-        :type conftype: basestring
+        :param conftype: Type of configuration (webserver, websocket, amqp,
+            storage, ...).
+        :type conftype: str
 
-        :returns: Absolute path to config file
+        :return: Absolute path to config file.
+        :rtype: str
         """
 
         envvar = 'CPS_CONFPATH_{0}'.format(conftype.upper())
