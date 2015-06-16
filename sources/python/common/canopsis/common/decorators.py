@@ -27,8 +27,6 @@ from functools import wraps
 
 from logging import Logger
 
-from inspect import ismethod
-
 
 def _findlogger(func, args, kwargs):
     """Find a logger from a or func call arguments.
@@ -48,9 +46,11 @@ def _findlogger(func, args, kwargs):
     # initialize the result
     result = None
     # find a logger from func instance if func is a method
-    if ismethod(func):
-        instance = getattr(func, '__self__', None)
-        if instance is not None:
+    func_name = func.__name__
+    if args:
+        instance = args[0]
+        method = getattr(instance, func_name, None)
+        if getattr(method, '__self__', None) is instance:
             result = getattr(instance, 'logger', None)
 
     if result is None:

@@ -24,19 +24,22 @@
 
 from unittest import main, TestCase
 from canopsis.common.decorators import deprecated
+from logging import Logger
 
 
 class DeprecatedTest(TestCase):
     """Test the decorator deprecated.
     """
 
-    class LoggerMock(object):
+    class LoggerMock(Logger):
         """Logger Mock.
         """
 
-        def __init__(self):
+        def __init__(self, *args, **kwargs):
 
-            super(DeprecatedTest.LoggerMock, self).__init__()
+            super(DeprecatedTest.LoggerMock, self).__init__(
+                name='test', *args, **kwargs
+            )
 
             self.msg = None
 
@@ -47,7 +50,7 @@ class DeprecatedTest(TestCase):
 
             self.msg = msg
 
-    class ClassWithLogger(object):
+    class Loggeable(object):
         """Class with logger.
 
         This logger is its ``logger`` attribute.
@@ -55,10 +58,11 @@ class DeprecatedTest(TestCase):
 
         def __init__(self):
 
-            super(DeprecatedTest.ClassWithLogger, self).__init__()
+            super(DeprecatedTest.Loggeable, self).__init__()
 
             self.logger = DeprecatedTest.LoggerMock()
 
+        @deprecated(start='test')
         def test(self, *args, **kwargs):
             """Empty test.
             """
@@ -76,7 +80,7 @@ class DeprecatedTest(TestCase):
             """Test function
             """
 
-        self.assertRaises(RuntimeError, func())
+        self.assertRaises(RuntimeError, func)
 
     def test_loggermock(self):
         """Test to depreciate a function with a logger.
@@ -99,7 +103,7 @@ class DeprecatedTest(TestCase):
         """Test to depreciate a method.
         """
 
-        instance = DeprecatedTest.ClassWithLogger()
+        instance = DeprecatedTest.Loggeable()
 
         self.assertIsNone(instance.logger.msg)
 
@@ -147,7 +151,7 @@ class DeprecatedTest(TestCase):
         """
 
         baselogger = DeprecatedTest.LoggerMock()
-        instance = DeprecatedTest.ClassWithLogger()
+        instance = DeprecatedTest.Loggeable()
         argslogger = DeprecatedTest.LoggerMock()
         kwargslogger = DeprecatedTest.LoggerMock()
 
@@ -166,9 +170,23 @@ class DeprecatedTest(TestCase):
         self.assertIsNone(kwargslogger.msg)
 
         @deprecated(start=self.start, logger=baselogger)
+        def func_with_logger(*args, **kwargs):
+            """Test function.
+            """
+
+        func_with_logger(argslogger, a=kwargslogger)
+
+        self.assertIsNotNone(baselogger.msg)
+        self.assertIsNone(instance.logger.msg)
+        self.assertIsNone(argslogger.msg)
+        self.assertIsNone(kwargslogger.msg)
+
+        @deprecated(start=self.start)
         def func(*args, **kwargs):
             """Test function.
             """
+
+        initloggers()
 
         func(argslogger, a=kwargslogger)
 
@@ -188,12 +206,12 @@ class DeprecatedTest(TestCase):
 
         initloggers()
 
-        func()
+        self.assertRaises(RuntimeError, func)
 
-        self.assertIsNotNone(baselogger.msg)
+        self.assertIsNone(baselogger.msg)
         self.assertIsNone(instance.logger.msg)
         self.assertIsNone(argslogger.msg)
-        self.assertIsNotNone(kwargslogger.msg)
+        self.assertIsNone(kwargslogger.msg)
 
         initloggers()
 
@@ -202,7 +220,8 @@ class DeprecatedTest(TestCase):
         self.assertIsNone(baselogger.msg)
         self.assertIsNotNone(instance.logger.msg)
         self.assertIsNone(argslogger.msg)
-        self.assertIsNotNone(kwargslogger.msg)
+        self.assertIsNone(kwargslogger.msg)
+
 
 if __name__ == '__main__':
     main()
