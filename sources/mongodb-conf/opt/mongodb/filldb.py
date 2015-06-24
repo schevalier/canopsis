@@ -30,11 +30,14 @@ if __name__ == '__main__':
     init = Init()
     logger = init.getLogger('filldb')
 
-    if len(sys.argv) != 2:
-        print('Usage: {0} [init|update]'.format(sys.argv[0]))
+    if len(sys.argv) < 2:
+        print('Usage: {0} <init|update> [list_file]'.format(sys.argv[0]))
         sys.exit(1)
 
     action = sys.argv[1].lower()
+    list_file = None
+    if len(sys.argv) > 2:
+        list_file = sys.argv[2]
 
     if action not in ['update', 'init']:
         print('Invalid option: {0}'.format(action))
@@ -50,4 +53,7 @@ if __name__ == '__main__':
         module.logger = logger
         logger.info("{0} {1} ...".format(action, name))
 
-        getattr(module, action)()
+        if name.endswith('jsonloader'):
+            getattr(module, action)(list_file)
+        else:
+            getattr(module, action)()

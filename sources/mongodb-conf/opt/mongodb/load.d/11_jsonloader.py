@@ -45,7 +45,8 @@ files contains 'no_update_document' field set to true, upsert is avoided
 """
 
 
-def init():
+def init(list_file=None):
+    filt = get_list_from_file(list_file)
     # Iterating over json documents to manage and create paths variables.
     for filename in os.listdir(json_path):
         absolute_path = '{}/{}'.format(json_path, filename)
@@ -53,6 +54,8 @@ def init():
             collection = filename.replace('json_', '')
             for json_filename in os.listdir(absolute_path):
                 if json_filename.endswith('.json'):
+                    if filt and json_filename not in filt:
+                        continue
                     absolute_json_path = '{}/{}'.format(
                         absolute_path,
                         json_filename
@@ -79,6 +82,15 @@ def init():
                             absolute_json_path,
                             e
                         ))
+
+
+def get_list_from_file(list_file):
+    r = []
+    if not list_file or not os.path.exists(list_file):
+        return r
+    with open(list_file) as f:
+        r = [x.rstrip() for x in f.readlines()]
+    return r
 
 
 def load_document(json_data, collection, json_filename):
@@ -196,5 +208,5 @@ def do_update(json_data, collection):
     )
 
 
-def update():
-    init()
+def update(list_file=None):
+    init(list_file)
