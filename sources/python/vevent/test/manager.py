@@ -19,23 +19,33 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+"""VEventManager UTs.
+"""
+
 from unittest import TestCase, main
 
 from canopsis.vevent.manager import VEventManager
 
 
 class VeventManagerTest(TestCase):
+    """Test the VEventManager.
+    """
 
     def setUp(self):
-        pass
+
+        self.manager = VEventManager(data_scope='test')
 
     def tearDown(self):
         pass
 
     def test_manager_init(self):
-        """Test the construction of a vevent manager
+        """Test the construction of a vevent manager with specific parameters.
         """
-        vevent_manager = VEventManager()
+
+        vevent_storage = 2
+
+        self.manager = VEventManager(vevent_storage=vevent_storage)
+        self.assertIs(vevent_storage, self.manager[VEventManager.STORAGE])
 
     def test_manager_get_document_properties(self):
         """Test the getter on document properties

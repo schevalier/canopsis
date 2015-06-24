@@ -66,7 +66,7 @@ def dynmodloads(_path='.', subdef=False, pattern='.*', logger=None):
 
             if subdef:
                 alldefs = dir(module)
-                builtindefs =  [
+                builtindefs = [
                     '__builtins__',
                     '__doc__',
                     '__file__',
@@ -157,9 +157,9 @@ def lookup(path, cached=True):
         # try to import the first component name
         try:
             result = import_module(module_name)
-        except ImportError as e:
+        except ImportError as ier:
             print(
-                'Error while importing module {} : {}'.format(module_name, e)
+                'Error while importing module {} : {}'.format(module_name, ier)
             )
 
         if result is not None:
@@ -178,7 +178,7 @@ def lookup(path, cached=True):
                         result = import_module(module_name)
                         index += 1
 
-                except ImportError as ie:
+                except ImportError as ier:
                     # path sub-module content
                     try:
 
@@ -186,17 +186,20 @@ def lookup(path, cached=True):
                             result = getattr(result, components[index])
                             index += 1
 
-                    except AttributeError as ae:
+                    except AttributeError as aer:
                         raise ImportError(
-                            ('Wrong path {0} at {1}, ' +
+                            (
+                                'Wrong path {0} at {1}, ' +
                                 'errors when importing module {2} ' +
-                                ': {3}, {4}').format(
+                                ': {3}, {4}'
+                            ).format(
                                 path,
                                 components[:index],
                                 module_name,
-                                ie,
-                                ae
-                            ))
+                                ier,
+                                aer
+                            )
+                        )
 
             if result is not None and cached:
                 __RESOLVED_ELEMENTS[path] = result
@@ -322,8 +325,8 @@ def forceUTF8(data, _memory=None):
             elif isinstance(data, Iterable):
                 result = []
                 # convert all values of data
-                for d in data:
-                    value = forceUTF8(d)
+                for dat in data:
+                    value = forceUTF8(dat)
                     result.append(value)
                 # and convert result to data type
                 result = type(data)(result)
@@ -395,11 +398,12 @@ def prototype(typed_args=None, typed_kwargs=None, typed_return=None):
         typed_return = tuple(typed_return)
 
     def decorator(func):
+
         def wrapper(*args, **kwargs):
             i = 0
-            l = len(args)
+            lenargs = len(args)
 
-            for i in range(l):
+            for i in range(lenargs):
                 types = typed_args[i]
 
                 if isinstance(types, list):
@@ -408,6 +412,7 @@ def prototype(typed_args=None, typed_kwargs=None, typed_return=None):
                 if not isinstance(args[i], types):
                     raise TypeError(
                         'Invalid type for arg#{}, got {} instead of {}'.format(
+                            i,
                             type(args[i]),
                             types[i]
                         )
@@ -434,7 +439,7 @@ def prototype(typed_args=None, typed_kwargs=None, typed_return=None):
 
             if not isinstance(ret, typed_return):
                 raise TypeError(
-                    'Invalid type for return, got {0} instead of {}'.format(
+                    'Invalid type for return, got {} instead of {}'.format(
                         type(ret),
                         typed_return
                     )
@@ -473,7 +478,9 @@ class dictproperty(object):
 
         def __setitem__(self, key, value):
             if self._fset is None:
-                raise TypeError("Impossible to set key: {0} = {1}".format(key, value))
+                raise TypeError(
+                    "Impossible to set key: {0} = {1}".format(key, value)
+                )
 
             self._fset(self._obj, key, value)
 
@@ -483,7 +490,9 @@ class dictproperty(object):
 
             self._fdel(self._obj, key)
 
-    def __init__(self, fget=None, fset=None, fdel=None, doc=None, *args, **kwargs):
+    def __init__(
+        self, fget=None, fset=None, fdel=None, doc=None, *args, **kwargs
+    ):
         super(dictproperty, self).__init__(*args, **kwargs)
 
         self._fget = fget

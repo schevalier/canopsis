@@ -42,7 +42,7 @@ from dateutil.rrule import rrulestr
 
 from copy import deepcopy
 
-MAXTS = 2147483647  #: maximal timestamp
+MAXTS = 2147483647  #: maximal timestamp in 32bits
 CONF_PATH = 'vevent/vevent.conf'
 CATEGORY = 'VEVENT'
 
@@ -114,17 +114,27 @@ class VEventManager(MiddlewareRegistry):
 
     @staticmethod
     def get_document(
-        uid=None, source=None,
-        duration=0, rrule=None, dtstart=0, dtend=MAXTS,
-        **kwargs
+            uid=None, source=None,
+            duration=0, rrule=None, dtstart=0, dtend=MAXTS,
+            **kwargs
     ):
         """Get a document related to input values.
         """
 
         result = kwargs
 
+        if uid is None:
+            uid = str(uuid())
+
+        # ensure dtend and duration are consistents
+        if duration and not dtend:
+            datetimestart = datetime.fromtimestamp(dtstart)
+            duration = self._deserialize_duration(duration)
+            datetimeend = datetimestart + duration
+            dtend = timegm(datetimeend.timetuple())
+
         result.update({
-            VEventManager.UID: str(uuid()) if uid is None else uid,
+            VEventManager.UID: uid,
             VEventManager.SOURCE: source,
             VEventManager.DURATION: duration,
             VEventManager.RRULE: rrule,
@@ -175,8 +185,8 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     def get_by_uids(
-        self, uids,
-        limit=0, skip=0, sort=None, projection=None, with_count=False
+            self, uids,
+            limit=0, skip=0, sort=None, projection=None, with_count=False
     ):
         """Get documents by uid(s).
 
@@ -210,8 +220,8 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     def values(
-        self, sources=None, dtstart=None, dtend=None, query=None,
-        limit=0, skip=0, sort=None, projection=None, with_count=False
+            self, sources=None, dtstart=None, dtend=None, query=None,
+            limit=0, skip=0, sort=None, projection=None, with_count=False
     ):
         """Get document values of source vevent(s).
 
@@ -257,7 +267,7 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     def _build_vevent_query(
-        self, sources=None, dtstart=None, dtend=None, query=None
+            self, sources=None, dtstart=None, dtend=None, query=None
     ):
         """Build a storage query related to input parameters.
 
@@ -327,6 +337,62 @@ class VEventManager(MiddlewareRegistry):
 
         return result
 
+    def _preparedoc(self, vevent, source=None):
+        """Prepare a document related to input vevent and source.
+
+        :param vevent: vevent to prepare before putting it in a storage.
+        :type vevent: dict or Event or str
+        :return: document to put.
+        :rtype: dict
+        """
+
+        if isinstance(vevent, dict) and not isinstance(vevent, Event):
+
+            result = VEventManager.get_document(**vevent)
+
+        # if result has to be generated ...
+        else:
+            # ensure vevent is an ical format
+            if isinstance(vevent, basestring):
+                vevent = Event.from_ical(vevent)
+            # prepare the result with specific properties
+            result = self._get_vevent_properties(vevent=vevent)
+            # get dtstart
+            dtstart = vevent.get(VEventManager.DTSTART, 0)
+            if isinstance(dtstart, datetime):
+                dtstart = timegm(dtstart.timetuple())
+            # get dtend
+            dtend = vevent.get(VEventManager.DTEND, 0)
+            if isinstance(dtend, datetime):
+                dtend = timegm(dtend.timetuple())
+            # get rrule
+            rrule = vevent.get(VEventManager.RRULE)
+            if rrule is not None:
+                _rrule = ""
+                for rrule_key in rrule:
+                    rrule_value = rrule[rrule_key]
+                    _rrule += "{0}={1};".format(rrule_key, rrule_value)
+                rrule = _rrule
+            # get duration
+            duration = vevent.get(VEventManager.DURATION)
+            if duration:
+                duration = duration.total_seconds()
+            # get uid
+            uid = vevent.get(VEventManager.UID)
+            if not uid:
+                uid = str(uuid())
+            # get source
+            if not source:
+                source = vevent.get(VEventManager.SOURCE_TYPE)
+            # prepare the result
+            newdoc = VEventManager.get_document(
+                uid=uid, source=source, duration=duration, rrule=rrule,
+                dtstart=dtstart, dtend=dtend
+            )
+            result.update(newdoc)
+
+        return result
+
     def put(self, vevents, source=None, cache=False):
         """Add vevents (and optionally data) related to input source.
 
@@ -348,81 +414,15 @@ class VEventManager(MiddlewareRegistry):
 
         for vevent in vevents:
 
-            document = None
+            document = self._preparedoc(vevent=vevent, source=source)
 
-            if isinstance(vevent, dict) and not isinstance(vevent, Event):
-
-                document = vevent
-                # get uid
-                uid = document.get(VEventManager.UID)
-                if not uid:
-                    uid = str(uuid())
-                    document[VEventManager.UID] = uid
-                # get source
-                source = document.setdefault(VEventManager.SOURCE, source)
-                # get dtstart
-                dtstart = document.setdefault(VEventManager.DTSTART, 0)
-                # get dtend
-                dtend = document.setdefault(VEventManager.DTEND)
-                # get rrule
-                rrule = document.setdefault(VEventManager.RRULE, "")
-                # get duration
-                duration = document.setdefault(VEventManager.DURATION, 0)
-                if duration and not dtend:  # calculate dtend if not present
-                    datetimestart = datetime.fromtimestamp(dtstart)
-                    duration = self._deserialize_duration(duration)
-                    datetimeend = datetimestart + duration
-                    dtend = timegm(datetimeend.timetuple())
-                    document[VEventManager.DTEND] = dtend
-
-            # if document has to be generated ...
-            else:
-                # ensure vevent is an ical format
-                if isinstance(vevent, basestring):
-                    vevent = Event.from_ical(vevent)
-                # prepare the document with specific properties
-                document = self._get_vevent_properties(vevent=vevent)
-                # get dtstart
-                dtstart = vevent.get(VEventManager.DTSTART, 0)
-                if isinstance(dtstart, datetime):
-                    dtstart = timegm(dtstart.timetuple())
-                # get dtend
-                dtend = vevent.get(VEventManager.DTEND, 0)
-                if isinstance(dtend, datetime):
-                    dtend = timegm(dtend.timetuple())
-                # get rrule
-                rrule = vevent.get(VEventManager.RRULE)
-                if rrule is not None:
-                    _rrule = ""
-                    for rrule_key in rrule:
-                        rrule_value = rrule[rrule_key]
-                        _rrule += "{0}={1};".format(rrule_key, rrule_value)
-                    rrule = _rrule
-                # get duration
-                duration = vevent.get(VEventManager.DURATION)
-                if duration:
-                    duration = duration.total_seconds()
-                # get uid
-                uid = vevent.get(VEventManager.UID)
-                if not uid:
-                    uid = str(uuid())
-                # get source
-                if not source:
-                    source = vevent.get(VEventManager.SOURCE_TYPE)
-                # prepare the document
-                document.update({
-                    VEventManager.UID: uid,
-                    VEventManager.SOURCE: source,
-                    VEventManager.DTSTART: dtstart,
-                    VEventManager.DTEND: dtend,
-                    VEventManager.DURATION: duration,
-                    VEventManager.RRULE: rrule
-                })
+            uid = document[VEventManager.UID]
 
             self[VEventManager.STORAGE].update_elements(
                 query=uid, setrule=document
             )
 
+            # TODO: remove cause it is specific to mongo
             document['_id'] = uid
 
             result.append(document)
@@ -532,7 +532,7 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     @staticmethod
-    def get_period(self, document, ts=None, dtts=None):
+    def get_period(document, ts=None, dtts=None):
         """Get tuple of document (dtstart, dtend) related to document
         properties.
 
