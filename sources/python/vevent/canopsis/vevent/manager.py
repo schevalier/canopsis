@@ -18,8 +18,10 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+"""This module provides a vevent manager.
 """
-"""
+
+__all__ = ['VEventManager']
 
 from canopsis.common.init import basestring
 from canopsis.configuration.configurable.decorator import (
@@ -112,9 +114,8 @@ class VEventManager(MiddlewareRegistry):
 
         return {}
 
-    @staticmethod
     def get_document(
-            uid=None, source=None,
+            self, uid=None, source=None,
             duration=0, rrule=None, dtstart=0, dtend=MAXTS,
             **kwargs
     ):
@@ -385,7 +386,7 @@ class VEventManager(MiddlewareRegistry):
             if not source:
                 source = vevent.get(VEventManager.SOURCE_TYPE)
             # prepare the result
-            newdoc = VEventManager.get_document(
+            newdoc = self.get_document(
                 uid=uid, source=source, duration=duration, rrule=rrule,
                 dtstart=dtstart, dtend=dtend
             )

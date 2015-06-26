@@ -42,10 +42,7 @@ class VeventManagerTest(TestCase):
         """Test the construction of a vevent manager with specific parameters.
         """
 
-        vevent_storage = 2
-
-        self.manager = VEventManager(vevent_storage=vevent_storage)
-        self.assertIs(vevent_storage, self.manager[VEventManager.STORAGE])
+        self.manager = VEventManager()
 
     def test_manager_get_document_properties(self):
         """Test the getter on document properties
@@ -53,6 +50,7 @@ class VeventManagerTest(TestCase):
         the method _get_document_properties has
         to return a dict
         """
+
         vevent_manager = VEventManager()
         result = vevent_manager._get_document_properties(2)
         self.assertIsInstance(result, dict)
