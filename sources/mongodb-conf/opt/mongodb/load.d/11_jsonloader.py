@@ -26,6 +26,7 @@ from socket import getfqdn
 import os
 import json
 import pprint
+import bson.objectid as oid
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -201,6 +202,9 @@ def do_update(json_data, collection):
             pp.pformat(record)
         )
 
+    if record.get('_id') is None:
+        record['_id'] = oid.ObjectId()
+
     storage.get_backend(collection).update(
         {'loader_id': json_data['loader_id']},
         record,
@@ -210,3 +214,4 @@ def do_update(json_data, collection):
 
 def update(list_file=None):
     init(list_file)
+
