@@ -36,19 +36,14 @@ class VeventManagerTest(TestCase):
         self.manager = VEventManager(data_scope='test')
 
     def tearDown(self):
-        pass
 
-    def test_manager_init(self):
-        """Test the construction of a vevent manager with specific parameters.
-        """
-
-        self.manager = VEventManager()
+        self.manager.remove()
 
     def test_manager_get_document_properties(self):
-        """Test the getter on document properties
+        """Test the getter on document properties.
 
-        the method _get_document_properties has
-        to return a dict
+        The method _get_document_properties has
+        to return a dict.
         """
 
         vevent_manager = VEventManager()
@@ -56,9 +51,8 @@ class VeventManagerTest(TestCase):
         self.assertIsInstance(result, dict)
 
     def test_values(self):
-        """test the values method
+        """test the values method.
         """
-        pass
 
 if __name__ == '__main__':
     main()
