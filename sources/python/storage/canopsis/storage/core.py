@@ -18,6 +18,7 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+
 __all__ = ['DataBase', 'Storage']
 
 from functools import reduce
@@ -51,23 +52,25 @@ class DataBase(Middleware):
     JOURNALING = 'journaling'
 
     SHARDING = 'sharding'
-    REPLICASET = 'replicaSet'
+
+    REPLICASET = 'replicaset'
 
     CONF_RESOURCE = 'storage/storage.conf'
 
     class DataBaseError(Exception):
-        pass
+        """Handle DataBase errors.
+        """
 
     def __init__(
-        self,
-        db='canopsis', journaling=False, sharding=False, replicaSet=None,
-        *args, **kwargs
+            self,
+            db='canopsis', journaling=False, sharding=False, replicaset=None,
+            *args, **kwargs
     ):
         """
         :param str db: db name
         :param bool journaling: journaling mode enabling.
         :param bool sharding: db sharding mode enabling.
-        :param str replicaSet: db replicaSet.
+        :param str replicaset: db replicaset.
         """
 
         super(DataBase, self).__init__(*args, **kwargs)
@@ -76,7 +79,7 @@ class DataBase(Middleware):
         self._db = db
         self._journaling = journaling
         self._sharding = sharding
-        self._replicaSet = replicaSet
+        self._replicaset = replicaset
 
     @property
     def db(self):
@@ -106,19 +109,18 @@ class DataBase(Middleware):
         self.reconnect()
 
     @property
-    def replicaSet(self):
-        return self._replicaSet
+    def replicaset(self):
+        return self._replicaset
 
-    @replicaSet.setter
-    def replicaSet(self, value):
-        self._replicaSet = value
+    @replicaset.setter
+    def replicaset(self, value):
+        self._replicaset = value
         self.reconnect()
 
     def drop(self, table=None, *args, **kwargs):
         """Drop related all tables or one table if given.
 
-        :param table: table to drop
-        :type table: str
+        :param str table: table to drop
 
         :return: True if dropped
         :rtype: bool
@@ -129,13 +131,9 @@ class DataBase(Middleware):
     def size(self, table=None, criteria=None, *args, **kwargs):
         """Get database size in Bytes.
 
-        :param table: table from where get data size
-        :type table: str
-
-        :param criteria: dictionary of field/value which correspond to
+        :param str table: table from where get data size
+        :param dict criteria: dictionary of field/value which correspond to
             elements to get size.
-        :type criteria: dict
-
         :return: database size in Bytes of elements if criteria is not None,
             else all storage size.
         :rtype: number
@@ -235,11 +233,11 @@ class Storage(DataBase):
         pass
 
     def __init__(
-        self,
-        indexes=None, data=None,
-        cache_size=DEFAULT_CACHE_SIZE, cache_ordered=DEFAULT_CACHE_ORDERED,
-        cache_autocommit=DEFAULT_CACHE_AUTOCOMMIT, table=None,
-        *args, **kwargs
+            self,
+            indexes=None, data=None,
+            cache_size=DEFAULT_CACHE_SIZE, cache_ordered=DEFAULT_CACHE_ORDERED,
+            cache_autocommit=DEFAULT_CACHE_AUTOCOMMIT, table=None,
+            *args, **kwargs
     ):
         """
         :param str table: default table name.
@@ -260,6 +258,7 @@ class Storage(DataBase):
         self._data = data
         self._table = table
 
+        self._update_cache = False
         self._cache = None
         self._cache_size = cache_size
         self._cache_count = 0
@@ -269,7 +268,11 @@ class Storage(DataBase):
 
     @property
     def indexes(self):
+        """Get storage indexes.
 
+        :return: storage indexes such as a list of list of (name, direction).
+        :rtype: list
+        """
         return self._indexes
 
     def all_indexes(self):
@@ -310,6 +313,19 @@ class Storage(DataBase):
         """
 
         indexes = Storage._get_directed(value)
+
+        # if value is a name, transform it into a list
+        if isinstance(value, basestring):
+            indexes = [[(value, Storage.ASC)]]
+        elif isinstance(value, tuple):  # if value is a tuple
+            indexes = [[value]]
+        elif isinstance(value, list):  # if value is a list
+            for index in value:
+                index = self._ensure_index(index)
+                indexes.append(index)
+        else:  # error in other cases
+            raise Storage.StorageError(
+                "wrong indexes value %s. str, tuple or list accepted" % value)
 
         self._indexes = indexes
         self.reconnect()
@@ -383,7 +399,6 @@ class Storage(DataBase):
     def _init_cache(self):
         """Initialize cache processing.
         """
-
         # if cache size exists
         if self._cache_size > 0:
             self._parent_thread = current_thread()
@@ -409,12 +424,13 @@ class Storage(DataBase):
         raise NotImplementedError()
 
     def _process_query(
-        self,
-        query_op=None, cache_op=None, query_kwargs=None, cache_kwargs=None,
-        cache=False, **kwargs
+            self,
+            query_op, cache_op,
+            query_kwargs=None, cache_kwargs=None, cache=False,
+            **kwargs
     ):
         """Execute a query or the query cache depending on values of
-        _cache_size and input cache parameter.
+            _cache_size and input cache parameter.
 
         :param function query_op: query operation.
         :param function cache_op: query operation to cache.
@@ -425,10 +441,12 @@ class Storage(DataBase):
         :return: query/cache operation result.
         """
 
+        result = None
+
+        if query_kwargs is None:
+            query_kwargs = {}
         if cache_kwargs is None:
             cache_kwargs = {}
-
-        result = None
 
         if cache and self._cache_size > 0:
             # if self cache is None, that means thisd is the first use to cache
@@ -438,9 +456,11 @@ class Storage(DataBase):
             self._lock.acquire()  # avoid concurrent calls to cache execution
             try:
                 if cache_op is not None:
+
                     if cache_kwargs is not None:
                         kwargs.update(cache_kwargs)
                     cache_op(**kwargs)
+
                     # check for updating cache
                     self._updated_cache = True
                     # increment the counter
@@ -464,9 +484,9 @@ class Storage(DataBase):
 
         # while parent thread is alive and cache size is greater than 0
         while (
-            self._parent_thread.isAlive()
-            and self._cache_autocommit > 0
-            and self._cache_size > 0
+                self._parent_thread.isAlive()
+                and self._cache_autocommit > 0
+                and self._cache_size > 0
         ):
             # wait cache timeout before trying to executing it
             sleep(self._cache_autocommit)
@@ -510,9 +530,9 @@ class Storage(DataBase):
         if self._cache_count > 0:
             try:
                 result = self._execute_cache()
-            except Exception as e:
+            except Exception as ex:
                 self.logger.error(
-                    'Interruption of cache execution: {}'.format(e)
+                    'Interruption of cache execution: {}'.format(ex)
                 )
             else:  # if no error, renew the cache
                 self._cache = self._new_cache()
@@ -582,11 +602,11 @@ class Storage(DataBase):
         raise NotImplementedError()
 
     def get_elements(
-        self,
-        ids=None, query=None, limit=0, skip=0, sort=None, projection=None,
-        with_count=False,
+            self,
+            ids=None, query=None, limit=0, skip=0, sort=None, projection=None,
+            with_count=False,
     ):
-        """Get a list of elements where id are input ids
+        """Get a list of elements where id are input ids.
 
         :param ids: element ids or an element id to get if is a string.
         :type ids: list of str
@@ -634,9 +654,9 @@ class Storage(DataBase):
         return result
 
     def find_elements(
-        self,
-        query=None, limit=0, skip=0, sort=None, projection=None,
-        with_count=False
+            self,
+            query=None, limit=0, skip=0, sort=None, projection=None,
+            with_count=False
     ):
         """Find elements corresponding to input request and in taking care of
         limit, skip and sort find parameters.
@@ -681,9 +701,9 @@ class Storage(DataBase):
         self.remove_elements(ids=ids)
 
     def update_elements(
-        self,
-        query, renamerule=None, setrule=None, unsetrule=None, multi=True,
-        cache=False
+            self,
+            query, renamerule=None, setrule=None, unsetrule=None, multi=True,
+            cache=False
     ):
         """Update all elements which match with input query in applying input
         rule.
@@ -747,7 +767,7 @@ class Storage(DataBase):
 
     def count_elements(self, query=None):
         """
-        Count elements corresponding to the input query
+        Count elements corresponding to the input query.
 
         :param dict query: query which contain set of couples (key, value)
 
@@ -826,7 +846,6 @@ class Storage(DataBase):
 
     def copy(self, target):
         """Copy self content into target storage.
-
         target type must implement the same class in cstorage packege as self.
         If self implements directly cstorage.Storage, we don't care about
         target type
@@ -919,7 +938,8 @@ Storage types must be of the same type.'.format(self, target))
 
 
 class Cursor(object):
-    """Query cursor object.
+    """
+    Query cursor object.
 
     An iterable object in order to retrieve data from a Storage.
     A reference to the technology cursor is provided by the cursor getter.

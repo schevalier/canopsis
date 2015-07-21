@@ -195,8 +195,8 @@ class MongoStorage(MongoDataBase, Storage):
             for index in self.all_indexes():
                 try:
                     self._backend.ensure_index(index)
-                except Exception as e:
-                    self.logger.error(e)
+                except Exception as ex:
+                    self.logger.error(ex)
 
         return result
 
@@ -385,6 +385,12 @@ class MongoStorage(MongoDataBase, Storage):
 
         return result
 
+    def put_element(self, _id, element, cache=False, *args, **kwargs):
+
+        return self._update(
+            spec={MongoStorage.ID: _id}, document={'$set': element},
+            multi=False, cache=cache)
+
     def bool_compare_and_swap(self, _id, oldvalue, newvalue):
 
         return self.val_compare_and_swap(_id, oldvalue, newvalue) == newvalue
@@ -456,7 +462,8 @@ class MongoStorage(MongoDataBase, Storage):
         return result
 
     def _update(
-        self, spec, document, cache=False, multi=True, upsert=True, **kwargs
+            self, spec, document, cache=False, multi=True, upsert=True,
+            **kwargs
     ):
 
         if cache:
@@ -492,7 +499,7 @@ class MongoStorage(MongoDataBase, Storage):
     def _find(self, document=None, projection=None, **kwargs):
 
         result = self._run_command(
-            'find', self.get_table(), document, projection, **kwargs
+                'find', self.get_table(), document, projection, **kwargs
         )
 
         return result
@@ -547,15 +554,17 @@ class MongoStorage(MongoDataBase, Storage):
             error = result_query.get("writeConcernError", None)
 
             if error is not None:
-                self.logger.error(' error in writing document: {0}'.format(
-                    error))
+                self.logger.error(
+                    'Attempt to write document: {0}'.format(error)
+                )
                 result = None
 
             error = result_query.get("writeError")
 
             if error is not None:
-                self.logger.error(' error in writing document: {0}'.format(
-                    error))
+                self.logger.error(
+                    'Attempt to write document: {0}'.format(error)
+                )
                 result = None
 
         return result
@@ -576,7 +585,7 @@ class MongoStorage(MongoDataBase, Storage):
             backend_command = getattr(backend, command)
             w = 1 if self.safe else 0
             result = backend_command(
-                w=w, wtimeout=self.out_timeout, *args, **kwargs
+                    w=w, wtimeout=self.out_timeout, *args, **kwargs
             )
 
         except TimeoutError:
