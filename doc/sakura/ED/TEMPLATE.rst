@@ -1,30 +1,30 @@
-=========================
-TITLE : titre du document
-=========================
+=====
+TITLE
+=====
+
+.. sectnum::
+
+Short description.
 
 Plan
 ====
 
-Plan du document.
+.. contents::
+   :depth: 2
 
-Description
-===========
-
-Description courte du document.
-
-Références
+References
 ==========
 
-Références vers d’autres FR/TR/ED.
+List of used FR/TR/ED.
 
-Mises à jour
-============
+Updates
+=======
 
-+-----------+------------+---------+-------------------------+------------+
-| Auteur(s) | Date       | Version | Résumé                  | Validé par |
-+-----------+------------+---------+-------------------------+------------+
-| John Doe  | 39/08/2005 | 0.1     | Création de ce template | toto       |
-+-----------+------------+---------+-------------------------+------------+
+.. csv-table::
+   :header: "Author(s)", "Date", "Version", "Summary", "Approved by"
+   :widths: 20, 10, 10, 20, 30
 
-Contenu
+   "John Doe", "39/08/2005", "0.1", "Template creation", "toto"
+
+Content
 =======

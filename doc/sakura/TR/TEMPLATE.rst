@@ -1,60 +1,58 @@
-=========================
-TITLE : titre du document
-=========================
+=====
+TITLE
+=====
+
+.. sectnum::
+
+Short description.
 
 Plan
 ====
 
-Plan du document.
+.. contents::
+   :depth: 2
 
-Description
-===========
-
-Description courte du document.
-
-Références
+References
 ==========
 
-Références vers d’autres TR et FR.
+List of used functional and technical requirement documents.
 
-Mises à jour
-============
-
-+-----------+------------+---------+-------------------------+------------+
-| Auteur(s) | Date       | Version | Résumé                  | Validé par |
-+-----------+------------+---------+-------------------------+------------+
-| John Doe  | 39/08/2005 | 0.1     | Création de ce template | toto       |
-+-----------+------------+---------+-------------------------+------------+
-
-Contenu
+Updates
 =======
 
-Tâche 1
--------
+.. csv-table::
+   :header: "Author(s)", "Date", "Version", "Summary", "Approved by"
+   :widths: 20, 10, 10, 20, 30
 
-Description de la tâche 1.
+   "John Doe", "39/08/2005", "0.1", "Template creation", "toto"
 
-Architecture Logicielle + chiffrage
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Content
+=======
 
-Schéma et description de l’architecture logicielle employée + charge en jours/homme de la tâche.
+Task 1
+------
 
-Guide technique
+Description.
+
+Software Architecture and costing
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+Schema and software architecture description and costing in day/man.
+
+Technical guide book
+>>>>>>>>>>>>>>>>>>>>
+
+UTs and costing
 >>>>>>>>>>>>>>>
 
-Guide d'utilisation technique.
+Unit tests description and costing in day/man.
 
-TUs + chiffrage
+FTs and costing
 >>>>>>>>>>>>>>>
 
-Description des Tests unitaires + charge en jours/homme.
+Functional tests description and costing in day/man.
 
-TFs + chiffrage
+PTs and costing
 >>>>>>>>>>>>>>>
 
-Description des Tests fonctionnels + charge en jours/homme.
-
-TPs + chiffrage
->>>>>>>>>>>>>>>
-
-Description des Tests de performance + charge en jours/homme.
+Performance tests description and costing in day/man.
