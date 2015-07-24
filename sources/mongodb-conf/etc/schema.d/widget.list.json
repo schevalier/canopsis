@@ -42,10 +42,10 @@
 				"slacrit",
 				"snmprule",
 				"topology",
+				"trap",
 				"user",
 				"userview",
-				"widgetpreferences",
-				"trap"
+				"widgetpreferences"
 			],
 			"default": "group",
 			"role": "simplelist"
