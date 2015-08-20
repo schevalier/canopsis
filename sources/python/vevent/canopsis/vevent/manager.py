@@ -186,7 +186,10 @@ class VEventManager(MiddlewareRegistry):
         # get duration
         duration = document[VEventManager.DURATION]
         if duration:
-            kwargs[VEventManager.DURATION] = timedelta(duration)
+            deserialized_duration = VEventManager._deserialize_duration(
+                duration
+            )
+            kwargs[VEventManager.DURATION] = deserialized_duration
 
         # get rrule
         rrule = document[VEventManager.RRULE]
