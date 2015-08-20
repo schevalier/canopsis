@@ -176,12 +176,12 @@ class VEventManager(MiddlewareRegistry):
         # get dtstart
         dtstart = document[VEventManager.DTSTART]
         if dtstart:
-            kwargs[VEventManager.DTSTART] = datetime.fromtimestamp(dtstart)
+            kwargs[VEventManager.DTSTART] = datetime.utcfromtimestamp(dtstart)
 
         # get dtend
         dtend = document[VEventManager.DTEND]
         if dtend:
-            kwargs[VEventManager.DTEND] = datetime.fromtimestamp(dtend)
+            kwargs[VEventManager.DTEND] = datetime.utcfromtimestamp(dtend)
 
         # get duration
         duration = document[VEventManager.DURATION]
