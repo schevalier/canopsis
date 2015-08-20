@@ -114,9 +114,10 @@ class VEventManager(MiddlewareRegistry):
 
         return {}
 
+    @staticmethod
     def get_document(
-            self, uid=None, source=None,
-            duration=0, rrule=None, dtstart=0, dtend=MAXTS,
+            uid=None, source=None,
+            duration=None, rrule=None, dtstart=0, dtend=None,
             **kwargs
     ):
         """Get a document related to input values.
@@ -127,12 +128,18 @@ class VEventManager(MiddlewareRegistry):
         if uid is None:
             uid = str(uuid())
 
-        # ensure dtend and duration are consistents
-        if duration and not dtend:
-            datetimestart = datetime.fromtimestamp(dtstart)
-            duration = self._deserialize_duration(duration)
-            datetimeend = datetimestart + duration
-            dtend = timegm(datetimeend.timetuple())
+        # ensure dtend and duration are consistents if rrule is None
+        if rrule is None:
+            if duration is None:
+                if dtend is None:
+                    dtend = MAXTS
+                duration = dtend - dtstart
+
+            elif dtend is None:
+                datetimestart = datetime.utcfromtimestamp(dtstart)
+                deltaduration = VEventManager._deserialize_duration(duration)
+                datetimeend = datetimestart + deltaduration
+                dtend = timegm(datetimeend.timetuple())
 
         result.update({
             VEventManager.UID: uid,
@@ -160,23 +167,28 @@ class VEventManager(MiddlewareRegistry):
         uid = document.get(VEventManager.UID)
         if uid:
             kwargs[VEventManager.UID] = uid
+
         # get source
         source = document.get(VEventManager.SOURCE)
         if source:
             kwargs[VEventManager.SOURCE_TYPE] = source
+
         # get dtstart
         dtstart = document[VEventManager.DTSTART]
         if dtstart:
             kwargs[VEventManager.DTSTART] = datetime.fromtimestamp(dtstart)
+
         # get dtend
         dtend = document[VEventManager.DTEND]
         if dtend:
             kwargs[VEventManager.DTEND] = datetime.fromtimestamp(dtend)
+
         # get duration
         duration = document[VEventManager.DURATION]
         if duration:
             kwargs[VEventManager.DURATION] = timedelta(duration)
-        # get freq
+
+        # get rrule
         rrule = document[VEventManager.RRULE]
         if rrule:
             kwargs[VEventManager.RRULE] = rrule
@@ -215,6 +227,7 @@ class VEventManager(MiddlewareRegistry):
 
         if with_count:
             result = list(documents[0]), documents[1]
+
         else:
             result = list(documents[0])
 
@@ -262,6 +275,7 @@ class VEventManager(MiddlewareRegistry):
 
         if with_count:
             result = list(documents[0]), documents[1]
+
         else:
             result = list(documents)
 
@@ -286,12 +300,14 @@ class VEventManager(MiddlewareRegistry):
         if sources is not None:
             if isinstance(sources, basestring):
                 result[VEventManager.SOURCE] = {'$in': sources}
+
             else:
                 result[VEventManager.SOURCE] = sources
 
         # put dtstart and dtend in result
         if dtstart is None:
             dtstart = 899909521
+
         if dtend is None:
             dtend = MAXTS
 
@@ -333,6 +349,7 @@ class VEventManager(MiddlewareRegistry):
 
         if isinstance(sduration, dict):
             result = relativedelta(**sduration)
+
         else:
             result = timedelta(seconds=sduration)
 
@@ -496,10 +513,11 @@ class VEventManager(MiddlewareRegistry):
         """
 
         result = {}
-        # get the right ts datetime
-        if ts is None:
+
+        if ts is None:  # initialize ts
             ts = time()
-        dtts = datetime.fromtimestamp(ts)
+
+        dtts = datetime.fromtimestamp(ts)  # get the right ts datetime
 
         # check unicity of sources
         isunique = isinstance(sources, basestring)
@@ -548,6 +566,7 @@ class VEventManager(MiddlewareRegistry):
         if ts is None:
             ts = time()
             dtts = datetime.fromtimestamp(ts)
+
         elif dtts is None:
             dtts = datetime.fromtimestamp(ts)
 
@@ -558,26 +577,29 @@ class VEventManager(MiddlewareRegistry):
         datetimestart = datetime.fromtimestamp(dtstart)
         dtend = document.get(VEventManager.DTEND, MAXTS)
         datetimeend = datetime.fromtimestamp(dtend)
+
         # get the right dtend if duration exists
         if duration:
             duration = VEventManager._deserialize_duration(sduration=duration)
             # add duration on datetimeend
             datetimeend = min(datetimestart + duration, datetimeend)
             dtend = timegm(datetimeend.timetuple())
+
         # in case of rrule, get the right dtstart and dtend
         rrule = document.get(VEventManager.RRULE)
         if rrule:
             rrule = rrulestr(rrule)
             before = rrule.before(dtts=ts, inc=True)
+
             if before:
                 dtstart = timegm(before.timetuple())
                 datetimeend = before
-                # add duration
-                if duration:
+
+                if duration:  # add duration
                     datetimeend += duration
                     dtend = min(dtend, timegm(datetimeend.timetuple()))
-                # check if datetimeend is greater or equal than dtts
-                if datetimeend >= dtts:
+
+                if datetimeend >= dtts:  # check if datetimeend >= than dtts
                     dtstart = timegm(datetimestart.timetuple())
                     result = dtstart, dtend
 
