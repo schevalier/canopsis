@@ -25,6 +25,8 @@
 from unittest import TestCase, main
 
 from canopsis.vevent.manager import VEventManager, MAXTS
+from calendar import timegm
+from datetime import datetime
 
 
 class VeventManagerTest(TestCase):
@@ -73,34 +75,51 @@ class GetDocumentTest(TestCase):
 
         # ensures uid are different
         self.assertNotEqual(
-            document0['uid'],
-            document1['uid'],
+            document0[VEventManager.UID],
+            document1[VEventManager.UID],
             'uid {0} and {1} are equals'.format(
-                document0['uid'], document1['uid']
+                document0[VEventManager.UID], document1[VEventManager.UID]
             )
         )
 
         # assert sources are None
         self.assertEqual(
-            (document0['source'], document1['source']), (None, None)
+            (
+                document0[VEventManager.SOURCE],
+                document1[VEventManager.SOURCE]
+            ), (None, None)
         )
 
         # assert durations are MAXTS
         self.assertEqual(
-            (document0['duration'], document1['duration']), (MAXTS, MAXTS)
+            (
+                document0[VEventManager.DURATION],
+                document1[VEventManager.DURATION]
+            ), (MAXTS, MAXTS)
         )
 
         # assert dtstarts are 0
-        self.assertEqual((document0['dtstart'], document1['dtstart']), (0, 0))
+        self.assertEqual(
+            (
+                document0[VEventManager.DTSTART],
+                document1[VEventManager.DTSTART]
+            ), (0, 0)
+        )
 
         # assert dtends are MAXTS
         self.assertEqual(
-            (document0['dtend'], document1['dtend']), (MAXTS, MAXTS)
+            (
+                document0[VEventManager.DTEND],
+                document1[VEventManager.DTEND]
+            ), (MAXTS, MAXTS)
         )
 
         # assert rrules are None
         self.assertEqual(
-            (document0['rrule'], document1['rrule']), (None, None)
+            (
+                document0[VEventManager.RRULE],
+                document1[VEventManager.RRULE]
+            ), (None, None)
         )
 
     def test_uid(self):
@@ -111,7 +130,7 @@ class GetDocumentTest(TestCase):
 
         document = VEventManager.get_document(uid=uid)
 
-        self.assertEqual(document['uid'], uid)
+        self.assertEqual(document[VEventManager.UID], uid)
 
     def test_dtend(self):
         """Test with a given dtend.
@@ -122,9 +141,9 @@ class GetDocumentTest(TestCase):
 
         document = VEventManager.get_document(dtend=dtend, dtstart=dtstart)
 
-        self.assertEqual(document['dtend'], dtend)
-        self.assertEqual(document['dtstart'], dtstart)
-        self.assertEqual(document['duration'], dtend - dtstart)
+        self.assertEqual(document[VEventManager.DTEND], dtend)
+        self.assertEqual(document[VEventManager.DTSTART], dtstart)
+        self.assertEqual(document[VEventManager.DURATION], dtend - dtstart)
 
     def test_duration(self):
         """Test with a given duration.
@@ -137,19 +156,29 @@ class GetDocumentTest(TestCase):
             duration=duration, dtstart=dtstart
         )
 
-        self.assertEqual(document['duration'], duration)
-        self.assertEqual(document['dtstart'], dtstart)
-        self.assertEqual(document['dtend'], dtstart + duration)
+        self.assertEqual(document[VEventManager.DURATION], duration)
+        self.assertEqual(document[VEventManager.DTSTART], dtstart)
+        self.assertEqual(document[VEventManager.DTEND], dtstart + duration)
 
     def test_rrule(self):
         """Test with a given rrule.
         """
 
-        rrule = ""
+        rrule = 'freq=daily'
 
         document = VEventManager.get_document(rrule=rrule)
 
-        self.assertEqual(rrule, document['rrule'])
+        self.assertEqual(rrule, document[VEventManager.RRULE])
+
+    def test_source(self):
+        """Test with a given source.
+        """
+
+        source = 'source'
+
+        document = VEventManager.get_document(source=source)
+
+        self.assertEqual(source, document[VEventManager.SOURCE])
 
 
 class GetVeventTest(TestCase):
@@ -159,14 +188,131 @@ class GetVeventTest(TestCase):
         self.manager = VEventManager(db='test')
 
     def test_default(self):
-        """Test with a default document.
+        """Test default document creation.
         """
 
-        document = VEventManager.get_document()
+        document0 = VEventManager.get_document()
+        document1 = VEventManager.get_document()
+
+        vevent0 = self.manager.get_vevent(document=document0)
+        vevent1 = self.manager.get_vevent(document=document1)
+
+        # ensures uid are different
+        self.assertNotEqual(
+            vevent0[VEventManager.UID],
+            vevent1[VEventManager.UID],
+            'uid {0} and {1} are equals'.format(
+                vevent0, vevent1
+            )
+        )
+
+        # assert sources are None
+        self.assertNotIn(VEventManager.SOURCE, vevent0)
+        self.assertNotIn(VEventManager.SOURCE, vevent1)
+
+        # assert durations are MAXTS
+        self.assertEqual(
+            (
+                vevent0[VEventManager.DURATION].total_seconds(),
+                vevent1[VEventManager.DURATION].total_seconds()
+            ),
+            (MAXTS, MAXTS)
+        )
+
+        # assert dtstarts are 0
+        self.assertNotIn(VEventManager.DTSTART, vevent0)
+        self.assertNotIn(VEventManager.DTSTART, vevent1)
+
+        # assert dtends are MAXTS
+        self.assertEqual(
+            (
+                timegm(vevent0[VEventManager.DTEND].timetuple()),
+                timegm(vevent1[VEventManager.DTEND].timetuple())
+            ), (MAXTS, MAXTS)
+        )
+
+        # assert rrules are None
+        self.assertNotIn(VEventManager.RRULE, vevent0)
+        self.assertNotIn(VEventManager.RRULE, vevent1)
+
+    def test_uid(self):
+        """Test with a given uid.
+        """
+
+        uid = 'test'
+
+        document = VEventManager.get_document(uid=uid)
 
         vevent = self.manager.get_vevent(document=document)
 
-        print vevent['dtstart']
+        self.assertEqual(vevent[VEventManager.UID], uid)
+
+    def test_dtend(self):
+        """Test with a given dtend.
+        """
+
+        dtstart = 1
+        dtend = 10
+
+        document = VEventManager.get_document(dtend=dtend, dtstart=dtstart)
+
+        vevent = self.manager.get_vevent(document=document)
+
+        self.assertEqual(
+            vevent[VEventManager.DTEND],
+            datetime.utcfromtimestamp(dtend)
+        )
+        self.assertEqual(
+            vevent[VEventManager.DTSTART], datetime.utcfromtimestamp(dtstart)
+        )
+        self.assertEqual(
+            vevent[VEventManager.DURATION].total_seconds(), dtend - dtstart
+        )
+
+    def test_duration(self):
+        """Test with a given duration.
+        """
+
+        dtstart = 1
+        duration = 10
+
+        document = VEventManager.get_document(
+            duration=duration, dtstart=dtstart
+        )
+        vevent = self.manager.get_vevent(document=document)
+
+        self.assertEqual(
+            vevent[VEventManager.DTEND],
+            datetime.utcfromtimestamp(dtstart + duration)
+        )
+        self.assertEqual(
+            vevent[VEventManager.DTSTART], datetime.utcfromtimestamp(dtstart)
+        )
+        self.assertEqual(
+            vevent[VEventManager.DURATION].total_seconds(), duration
+        )
+
+    def test_rrule(self):
+        """Test with a given rrule.
+        """
+
+        rrule = "freq=daily"
+
+        document = VEventManager.get_document(rrule=rrule)
+        vevent = self.manager.get_vevent(document=document)
+
+        self.assertEqual(rrule, vevent[VEventManager.RRULE])
+
+    def test_source(self):
+        """Test with a given source.
+        """
+
+        source = "source"
+
+        document = VEventManager.get_document(source=source)
+        vevent = self.manager.get_vevent(document=document)
+
+        self.assertEqual(source, vevent[VEventManager.SOURCE_TYPE])
 
 if __name__ == '__main__':
     main()
