@@ -376,16 +376,21 @@ class VEventManager(MiddlewareRegistry):
             # ensure vevent is an ical format
             if isinstance(vevent, basestring):
                 vevent = Event.from_ical(vevent)
+
             # prepare the result with specific properties
             result = self._get_vevent_properties(vevent=vevent)
+
             # get dtstart
             dtstart = vevent.get(VEventManager.DTSTART, 0)
+
             if isinstance(dtstart, datetime):
                 dtstart = timegm(dtstart.timetuple())
+
             # get dtend
             dtend = vevent.get(VEventManager.DTEND, 0)
             if isinstance(dtend, datetime):
                 dtend = timegm(dtend.timetuple())
+
             # get rrule
             rrule = vevent.get(VEventManager.RRULE)
             if rrule is not None:
@@ -394,17 +399,33 @@ class VEventManager(MiddlewareRegistry):
                     rrule_value = rrule[rrule_key]
                     _rrule += "{0}={1};".format(rrule_key, rrule_value)
                 rrule = _rrule
+
             # get duration
             duration = vevent.get(VEventManager.DURATION)
             if duration:
-                duration = duration.total_seconds()
+                if isinstance(duration, timedelta):
+                    duration = duration.totalseconds()
+
+                elif isinstance(duration, relativedelta):
+                    duration = {
+                        'years': duration.years,
+                        'months': duration.months,
+                        'days': duration.days,
+                        'hours': duration.hours,
+                        'minutes': duration.minutes,
+                        'seconds': duration.seconds,
+                        'microseconds': duration.microseconds
+                    }
+
             # get uid
             uid = vevent.get(VEventManager.UID)
             if not uid:
                 uid = str(uuid())
+
             # get source
             if not source:
                 source = vevent.get(VEventManager.SOURCE_TYPE)
+
             # prepare the result
             newdoc = self.get_document(
                 uid=uid, source=source, duration=duration, rrule=rrule,

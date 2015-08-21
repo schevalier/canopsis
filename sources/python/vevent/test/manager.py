@@ -33,7 +33,7 @@ class VeventManagerTest(TestCase):
 
     def setUp(self):
 
-        self.manager = VEventManager(data_scope='test')
+        self.manager = VEventManager(db='test')
 
     def tearDown(self):
 
@@ -151,6 +151,22 @@ class GetDocumentTest(TestCase):
 
         self.assertEqual(rrule, document['rrule'])
 
+
+class GetVeventTest(TestCase):
+
+    def setUp(self):
+
+        self.manager = VEventManager(db='test')
+
+    def test_default(self):
+        """Test with a default document.
+        """
+
+        document = VEventManager.get_document()
+
+        vevent = self.manager.get_vevent(document=document)
+
+        print vevent['dtstart']
 
 if __name__ == '__main__':
     main()

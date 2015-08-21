@@ -314,19 +314,6 @@ class Storage(DataBase):
 
         indexes = Storage._get_directed(value)
 
-        # if value is a name, transform it into a list
-        if isinstance(value, basestring):
-            indexes = [[(value, Storage.ASC)]]
-        elif isinstance(value, tuple):  # if value is a tuple
-            indexes = [[value]]
-        elif isinstance(value, list):  # if value is a list
-            for index in value:
-                index = self._ensure_index(index)
-                indexes.append(index)
-        else:  # error in other cases
-            raise Storage.StorageError(
-                "wrong indexes value %s. str, tuple or list accepted" % value)
-
         self._indexes = indexes
         self.reconnect()
 
