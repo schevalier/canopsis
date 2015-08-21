@@ -309,7 +309,7 @@ class VEventManager(MiddlewareRegistry):
 
         # put dtstart and dtend in result
         if dtstart is None:
-            dtstart = 899909521
+            dtstart = 0  # TODO: check why old value was 899909521
 
         if dtend is None:
             dtend = MAXTS
@@ -509,8 +509,10 @@ class VEventManager(MiddlewareRegistry):
         _filter = {} if query is None else query
 
         if sources is not None:
+
             if isinstance(sources, basestring):
                 _filter[VEventManager.SOURCE] = sources
+
             else:
                 _filter[VEventManager.SOURCE] = {'$in': sources}
 
@@ -541,7 +543,7 @@ class VEventManager(MiddlewareRegistry):
         if ts is None:  # initialize ts
             ts = time()
 
-        dtts = datetime.fromtimestamp(ts)  # get the right ts datetime
+        dtts = datetime.utcfromtimestamp(ts)  # get the right ts datetime
 
         # check unicity of sources
         isunique = isinstance(sources, basestring)
@@ -589,18 +591,18 @@ class VEventManager(MiddlewareRegistry):
 
         if ts is None:
             ts = time()
-            dtts = datetime.fromtimestamp(ts)
+            dtts = datetime.utcfromtimestamp(ts)
 
         elif dtts is None:
-            dtts = datetime.fromtimestamp(ts)
+            dtts = datetime.utcfromtimestamp(ts)
 
         # prepare end ts to update in result
         duration = document.get(VEventManager.DURATION)
         rrule = document.get(VEventManager.RRULE)
         dtstart = document.get(VEventManager.DTSTART, 0)
-        datetimestart = datetime.fromtimestamp(dtstart)
+        datetimestart = datetime.utcfromtimestamp(dtstart)
         dtend = document.get(VEventManager.DTEND, MAXTS)
-        datetimeend = datetime.fromtimestamp(dtend)
+        datetimeend = datetime.utcfromtimestamp(dtend)
 
         # get the right dtend if duration exists
         if duration:
