@@ -1,0 +1,90 @@
+{
+    "type": "object",
+    "metadata": {
+        "icon": "fa fa-bar-chart"
+    },
+    "categories": [{
+        "title": "General",
+        "keys": ["title", "timewindow", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
+    },{
+        "title": "Series",
+        "keys":["series"]
+    },{
+        "title": "Metrics",
+        "keys":["metrics"]
+    },{
+        "title": "Mixins",
+        "keys":["mixins"]
+    }],
+    "properties": {
+        "title":  {
+            "type": "string"
+        },
+        "human_readable": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show metrics values in a human readable way."
+        },
+        "display": {
+            "enum": ["line", "bar", "spline"],
+            "role": "simplelist",
+            "default": "line",
+            "description": "Allow to select the categorie chart representation"
+        },
+        "allow_user_display": {
+            "type": "boolean",
+            "role": "boolean",
+            "default": true,
+            "description": "Allow users to dynamically change chart type.",
+            "title": "allow user display"
+        },
+        "metric_template":  {
+            "type": "string",
+            "description": "Select metric to display in the chart. the last value in an interval of 10 minutes is selected by default. Availables template values are <ul><li>connector</li><li>connector_name</li><li>component</li><li>resource</li><li>metric</li></ul>e.g. {{component}} - {{metric}}",
+            "title": "metric template"
+        },
+        "series": {
+            "description": "Select computed metric values usable in the texteditor. When many points selected for the serie interval, the last one's value only is displayed.",
+            "type": "array",
+            "role": "arrayclassifiedcrecordselector",
+            "model": "serie",
+            "crecordtype": "serie",
+            "multiselect": true
+        },
+        "metrics": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "role": "cmetric",
+            "title": "Metrics"
+        },
+        "show_legend": {
+            "type": "boolean",
+            "default": true,
+            "role": "boolean",
+            "description": "Display legend when checked",
+            "title": "show legend"
+        },
+        "show_tooltip": {
+            "type": "boolean",
+            "default": true,
+            "role": "boolean",
+            "description": "Display tooltip when checked",
+            "title": "show tooltip"
+        },
+        "show_labels": {
+            "type": "boolean",
+            "default": true,
+            "role": "boolean",
+            "description": "Display labels when checked",
+            "title": "show labels"
+        },
+        "timewindow": {
+            "type": "number",
+            "role": "duration",
+            "default": 86400,
+            "title": "Time Window to show on graph"
+        }
+    }
+}
