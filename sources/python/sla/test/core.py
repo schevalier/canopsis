@@ -50,12 +50,19 @@ class KnownValues(TestCase):
         self,
         rk='mock.rk',
         template='template sla',
-        timewindow=60,
+        timewindow=None,
         warning=80,
         critical=60,
         alert_level='minor',
         display_name='mysla'
     ):
+        if timewindow is None:
+            timewindow = {
+                "seconds": 60,
+                "durationType": "second",
+                "value": 60
+            }
+
         sla = Sla(
             MockStorage(),
             rk,
@@ -77,7 +84,9 @@ class KnownValues(TestCase):
         sla_info = []
         now = time()
 
-        sla_measures, first_timestamp = sla.compute_sla(sla_info, now)
+        sla_measures, first_timestamp, sla_times = sla.compute_sla(
+            sla_info, now
+        )
         self.assertEqual(
             sla_measures,
             {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0}
@@ -90,7 +99,9 @@ class KnownValues(TestCase):
             {'timestamp': now, 'state': 2},
         ]
 
-        sla_measures, first_timestamp = sla.compute_sla(sla_info, now)
+        sla_measures, first_timestamp, sla_times = sla.compute_sla(
+            sla_info, now
+        )
         self.assertEqual(
             sla_measures,
             {0: 0.0, 1: 0.0, 2: 0.5, 3: 0.5}
@@ -102,6 +113,7 @@ class KnownValues(TestCase):
         # It should generate a specific string with given data structure
         sla = self.get_sla()
         template = '[OFF],[MINOR],[MAJOR],[CRITICAL],[ALERTS],[TSTART]'
+
         output = sla.compute_output(
             template,
             {
@@ -111,6 +123,8 @@ class KnownValues(TestCase):
                 3: 0.03
             },
             0.98,
+            10,
+            10,
             1423753091
         )
         self.assertEqual(
@@ -129,6 +143,8 @@ class KnownValues(TestCase):
                 3: 0.03
             },
             0.97,
+            10,
+            10,
             1423753091
         )
         self.assertEqual(output, '11.00 - 11.00 - 97.00')
@@ -141,7 +157,21 @@ class KnownValues(TestCase):
         sla = self.get_sla()
         measures = {0: 0, 1: 1, 2: 2, 3: 3}
 
-        event = sla.prepare_event('test_display', measures, 'output', 0, 0.5)
+        event = sla.prepare_event(
+            'test_display',
+            measures,
+            'output',
+            0,
+            0.5,
+            10,
+            10,
+            {
+                "seconds": 60,
+                "durationType": "second",
+                "value": 60
+            },
+            time()
+        )
         self.assertEqual(event['event_type'], 'sla')
         self.assertEqual(event['component'], 'test_display')
         self.assertEqual(event['source_type'], 'resource')
@@ -153,7 +183,9 @@ class KnownValues(TestCase):
                 {'max': 100, 'metric': 'cps_pct_by_1', 'value': 100.0},
                 {'max': 100, 'metric': 'cps_pct_by_2', 'value': 200.0},
                 {'max': 100, 'metric': 'cps_pct_by_3', 'value': 300.0},
-                {'max': 100, 'metric': 'cps_avail', 'value': 50.0}
+                {'max': 100, 'metric': 'cps_avail', 'value': 50.0},
+                {'metric': 'cps_avail_duration', 'value': 10},
+                {'metric': 'cps_alerts_duration', 'value': 10}
             ]
         )
         self.assertEqual(event['display_name'], 'test_display')

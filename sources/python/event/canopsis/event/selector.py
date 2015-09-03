@@ -181,7 +181,11 @@ class Selector(Record):
                 u'No timewindow set for selector {}, use default'.format(
                     self.display_name
                 ))
-            result = DEFAULT_SLA_TIMEWINDOW
+            result = {
+                "seconds": DEFAULT_SLA_TIMEWINDOW,
+                "durationType": "second",
+                "value": DEFAULT_SLA_TIMEWINDOW
+            }
 
         return result
 
