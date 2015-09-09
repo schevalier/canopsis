@@ -213,7 +213,7 @@ class CheckManager(MiddlewareRegistry):
         :param state: the state to persist.
         """
 
-        if state not in self.valid_states or not isinstance(state, int):
+        if (type(state) is not int) or state not in self.valid_states:
             raise InvalidState(state, self.valid_states)
 
         return self[CheckManager.CHECK_STORAGE].put_element(

@@ -182,13 +182,13 @@ class StateTest(CheckManagerTest):
         self.assertEqual(states[0]['state'], 0)
 
         # Test valid state values
-        for wrong_value in [-1, 4, True, 'test', object()]:
+        for wrong_value in [-1, 5, True, 'test', object()]:
             def test_state_raises():
                 self.manager.put_state('state_id', wrong_value)
             self.assertRaises(InvalidState, test_state_raises)
 
         # Tests no exception raised for valid states
-        for state in [0, 1, 2, 3]:
+        for state in self.manager.valid_states:
             self.manager.put_state('state_id', state)
 
     def test_get_state(self):
