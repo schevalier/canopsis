@@ -28,26 +28,29 @@ import re
 class Formulas(object):
     """Class that reads formulas and parse it using EBNF grammar"""
     # map operator symbols to corresponding arithmetic operations
-    global epsilon
     epsilon = 1e-12
-    opn = { "+" : operator.add,
-            "-" : operator.sub,
-            "*" : operator.mul,
-            "/" : operator.truediv,
-            "^" : operator.pow }
-    fn  = { "sin" : math.sin,
-            "cos" : math.cos,
-            "tan" : math.tan,
-            "abs" : abs,
-            "trunc" : lambda a: int(a),
-            "round" : round,
-            "max" : lambda l: max(float(i) for i in l),
-            "min" : lambda l: min(float(i) for i in l),
-            "sum" : lambda l: sum(float(i) for i in l),
-            "sgn" : lambda a: abs(a)>epsilon and cmp(a,0) or 0}
+    opn = {
+        '+': operator.add,
+        '-': operator.sub,
+        '*': operator.mul,
+        '/': operator.truediv,
+        '^': operator.pow
+    }
+    fn = {
+        'sin': math.sin,
+        'cos': math.cos,
+        'tan': math.tan,
+        'abs': abs,
+        'trunc': int,
+        'round': round,
+        'max': max,
+        'min': min,
+        'sum': sum,
+        'sgn': lambda a: abs(a) > 1e-12 and cmp(a, 0) or 0
+    }
 
     def __init__(self, _dict=None):
-        self.exprStack = []
+        self.exprstack = []
         self._bnf = None
         self._dict = _dict  # The dictionnary value as dictionnary {'x':2}
         self.variables = _dict
@@ -59,7 +62,7 @@ class Formulas(object):
         :param loc: is the location in the string where matching started
         :param toks: is the list of the matched tokens
         '''
-        self.exprStack.append(toks[0])
+        self.exprstack.append(toks[0])
 
     def push_minus(self, strg, loc, toks):
         '''
@@ -69,7 +72,7 @@ class Formulas(object):
         :param toks: is the list of the matched tokens.
         '''
         if toks and toks[0] == '-':
-            self.exprStack.append('unary -')
+            self.exprstack.append('unary -')
 
     def _import(self, _dict):
         '''
@@ -99,7 +102,11 @@ class Formulas(object):
         if not self._bnf:
             point = Literal(".")
             e = CaselessLiteral("E")
-            fnumber = Combine(Word("+-"+nums, nums) + Optional(point + Optional(Word(nums))) + Optional(e + Word("+-"+nums, nums)))
+            fnumber = Combine(
+                Word("+-"+nums, nums) +
+                Optional(point + Optional(Word(nums))) +
+                Optional(e + Word("+-"+nums, nums))
+            )
             ident = Word(alphas, alphas+nums+"_$")
             minus = Literal("-")
             plus = Literal("+")
@@ -113,60 +120,79 @@ class Formulas(object):
             pi = CaselessLiteral("PI")
 
             expr = Forward()
-            atom = (Optional("-") + ( pi | e | fnumber | ident + lpar + delimitedList(expr) + rpar ).setParseAction( self.push_first ) | ( lpar + expr.suppress() + rpar )).setParseAction(self.push_minus)
+            atom = (
+                Optional("-") +
+                (pi | e | fnumber | ident + lpar + delimitedList(expr) + rpar).
+                setParseAction(self.push_first) |
+                (lpar + expr.suppress() + rpar)
+            ).setParseAction(self.push_minus)
 
             # The right way to define exponentiation is -> 2^3^2 = 2^(3^2), not (2^3)^2.
             factor = Forward()
-            factor << atom + ZeroOrMore((expop + factor).setParseAction(self.push_first))
+            factor << atom + ZeroOrMore(
+                (expop + factor).setParseAction(self.push_first)
+            )
 
-            term = factor + ZeroOrMore((multop + factor).setParseAction(self.push_first))
-            expr << term + ZeroOrMore((addop + term).setParseAction(self.push_first))
+            term = factor + ZeroOrMore(
+                (multop + factor).setParseAction(self.push_first)
+            )
+            expr << term + ZeroOrMore(
+                (addop + term).setParseAction(self.push_first)
+            )
             self._bnf = expr
         return self._bnf
 
     def evaluate_parsing(self, parsing_result):
-        '''
-        '''
+        """
+        """
+
+        result = None
+
         op = parsing_result.pop()
+
         if op == 'unary -':
-            return -self.evaluate_parsing(parsing_result)
-        if op in "+-*/^":
+            result = -self.evaluate_parsing(parsing_result)
+        elif op in "+-*/^":
             op2 = self.evaluate_parsing(parsing_result)
             op1 = self.evaluate_parsing(parsing_result)
-            return self.opn[op](op1, op2)
+            result = self.opn[op](op1, op2)
         elif op.lower() == "pi":
-            return math.pi  # 3.1415926535
+            result = math.pi  # 3.1415926535
         elif op.lower() == "e":
-            return math.e  # 2.718281828
+            result = math.e  # 2.718281828
         elif op.lower() in self.fn:
             t_op = op.lower()
             if t_op in ('max', 'min', 'sum'):
-                return self.fn[t_op](self.evaluate_parsing(parsing_result))
-            return self.fn[op](self.evaluate_parsing(parsing_result))
+                arg = [self.evaluate(param) for param in parsing_result]
+                result = self.fn[t_op](arg)
+            else:
+                result = self.fn[op](self.evaluate_parsing(parsing_result))
         elif re.search('^[a-zA-Z][a-zA-Z0-9_]*$', op):
             if op in self._dict:
-                return self._dict[op]
+                result = self._dict[op]
             else:
-                return 0
+                result = 0
         elif op[0].isalpha():
-            return 0
+            result = 0
         else:
-            return float(op)
+            result = float(op)
+
+        return result
 
     def evaluate(self, formula):
-        '''
+        """
         Evaluate the formula
-        '''
+        """
         if self._dict is not None:
-            for k, v in self._dict.iteritems():
-                formula = formula.replace(str(k), str(v))
+            for k, val in self._dict.iteritems():
+                formula = formula.replace(str(k), str(val))
 
-        self.exprStack = []  # reset the stack before each eval
+        self.exprstack = []  # reset the stack before each eval
         try:
             results = self.bnf().parseString(formula)
         except ParseException:
             results = ['Parse Failure', formula]
         if len(results) == 0 or results[0] == 'Parse Failure':
             return 'Parse Failure-{}'.format(formula)
-        val = self.evaluate_parsing(self.exprStack[:])
+        val = self.evaluate_parsing(self.exprstack[:])
         return val

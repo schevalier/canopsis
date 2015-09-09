@@ -22,34 +22,58 @@
 from unittest import TestCase, main
 import math
 from canopsis.common.math_parser import Formulas
+from random import random
 
 
 class FormulasTest(TestCase):
     """docstring for FormulasTest"""
 
     def setUp(self):
+        self.x = random()
+        self.y = random()
+        self.me1 = random()
+        self.me2 = random()
+        self.me3 = random()
         # Variables values
-        _dict = {'x': 4, 'y': 5,\
-         'metric_687a68bb895125cb02f768473985569f': 120004608.0,\
-          'metric_f64a796c2e49d9ac3ba8cd1cdf350795': 3212440371.0,\
-           'metric_02bc472f705c074b4156850e1b5adcf4': 90193784012.0}  
+        _dict = {
+            'x': self.x, 'y': self.y,
+            'me1': self.me1,
+            'me2': self.me2,
+            'me3': self.me3
+        }
         self.formula = Formulas(_dict)
 
     def test(self):
         '''abs'''
 
-        expressions = {"x^2 + 9*x + 5": 4**2 + 9*4 + 5,\
-         "x^y": 4**5,"x^y + x + 2*y": 4**5 + 4 + 2*5,"-9": -9,\
-          "-E" :-math.e, "9 + 3 + 6": 18, "2*3.14159": 2*3.14159, \
-          "PI * PI / 10": math.pi * math.pi / 10, "PI^2": math.pi**2,\
-           "E^PI": math.e**math.pi, "2^3^2": 2**3**2, "sgn(-2)": -1,\
-            "sin(PI/2)": math.sin(math.pi/2), "trunc(E)": int(math.e),\
-             "round(E)": round(math.e), "(x + y + 1)/3": float(10)/float(3),\
-             "( metric_02bc472f705c074b4156850e1b5adcf4+ metric_687a68bb895125cb02f768473985569f+ metric_f64a796c2e49d9ac3ba8cd1cdf350795)/3":31175409663.666668,\
-             "MIN(2,5, y, x)":2, "MAX(2,8,45)": 45, "sum(7,13.56,0.04)":20.60}
+        expressions = {
+            'x^2 + 9*x + 5': self.x**2 + 9*self.x + 5,
+            'x^y': self.x**self.y,
+            'x^y + x + 2*y': self.x**self.y + self.x + 2*self.y,
+            '-9': -9,
+            '-E': -math.e, '9 + 3 + 6': 9 + 3 + 6,
+            '2*3.14159': 2*3.14159,
+            'PI * PI / 10': math.pi * math.pi / 10,
+            'PI^2': math.pi**2,
+            'E^PI': math.e**math.pi,
+            '2^3^2': 2**3**2,
+            'sgn(-2)': -1,
+            'sin(PI/2)': math.sin(math.pi / 2),
+            'trunc(E)': int(math.e),
+            'round(E)': round(math.e),
+            '(x + y + 1)/3': (self.x + self.y + 1) / 3,
+            '(me1 + me2 + me3) / 3': (self.me1 + self.me2 + self.me3) / 3,
+            'MIN(2, 5, y, x)': min(2, 5, self.y, self.x),
+            'MAX(2, 8, 45)': max(2, 8, 45),
+            'sum(7, 13.56, 0.04)': sum([7, 13.56, 0.04])
+        }
 
-        for k, v in expressions.iteritems():
-            self.assertEqual(self.formula.evaluate(k), v)
+        for k, val in expressions.iteritems():
+            evaluation = self.formula.evaluate(k)
+            if isinstance(val, float):
+                val = round(val, 5)
+                evaluation = round(evaluation, 5)
+            self.assertEqual(evaluation, val)
 
 if __name__ == '__main__':
     main()
