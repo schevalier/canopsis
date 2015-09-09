@@ -198,7 +198,7 @@ class GetTaskWithParamsTest(TestCase):
 
         self.wrong_function = 'test.test'
 
-        self.existing_function = 'canopsis.task.get_task_with_params'
+        self.existing_function = 'canopsis.task.core.get_task_with_params'
 
     def test_none_task_from_str(self):
 
