@@ -737,6 +737,33 @@ class Storage(DataBase):
 
         raise NotImplementedError()
 
+    def put_elements(self, elements, cache=False):
+        """Put input elements.
+
+        :param dict(s) elements: element(s) to put in db.
+        :param bool cache: use query cache if True (False by default).
+
+        :return: putted elements.
+        :rtype: dicts
+        """
+
+        result = []
+
+        unique = isinstance(elements, dict)
+
+        if unique:
+            elements = [elements]
+
+        for element in elements:
+            putted_element = self.put_element(element=element, cache=cache)
+            if putted_element:
+                result.append(element)
+
+        if unique:
+            result = result[0] if result else None
+
+        return result
+
     def __setitem__(self, _id, element):
         """
         Python shortcut for the put_element method.
