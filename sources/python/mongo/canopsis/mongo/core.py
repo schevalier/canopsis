@@ -389,6 +389,19 @@ class MongoStorage(MongoDataBase, Storage):
 
         self._remove(query, cache=cache)
 
+    def update_elements(
+            self, data, query=None, multi=False, upsert=False, cache=False
+    ):
+
+        if query is None:
+            _id = self._element_id(data)
+            query = {MongoStorage.ID: _id}
+
+        return self._update(
+            spec=query, document={'$set': data}, multi=multi, upsert=upsert,
+            cache=cache
+        )
+
     def put_element(self, element, _id=None, cache=False, *args, **kwargs):
 
         if _id is None:
@@ -396,7 +409,7 @@ class MongoStorage(MongoDataBase, Storage):
 
         return self._update(
             spec={MongoStorage.ID: _id}, document={'$set': element},
-            multi=False, cache=cache
+            multi=False, upsert=True, cache=cache
         )
 
     def bool_compare_and_swap(self, _id, oldvalue, newvalue):
@@ -457,12 +470,16 @@ class MongoStorage(MongoDataBase, Storage):
 
         if cache:
             cache_op = self._cache.find(selector=spec)
+
             if upsert:
                 cache_op = cache_op.upsert()
+
             if multi:
                 cache_op = cache_op.update
+
             else:
                 cache_op = cache_op.update_one
+
         else:
             cache_op = None
 

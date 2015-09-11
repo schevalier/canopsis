@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from time import time
 from canopsis.configuration.configurable.decorator import (
     conf_paths, add_category)
 from canopsis.middleware.registry import MiddlewareRegistry
-import uuid
 
 CONF_PATH = 'event/event.conf'
 CATEGORY = 'EVENT'
@@ -44,14 +42,14 @@ class Event(MiddlewareRegistry):
         return result[0] if len(result) else default
 
     def find(
-        self,
-        limit=None,
-        skip=None,
-        ids=None,
-        sort=None,
-        with_count=False,
-        query={},
-        projection=None
+            self,
+            limit=None,
+            skip=None,
+            ids=None,
+            sort=None,
+            with_count=False,
+            query={},
+            projection=None
     ):
 
         """

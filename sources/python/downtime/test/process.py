@@ -40,7 +40,6 @@ class DowntimeProcessingTest(TestCase):
     def tearDown(self):
 
         self.downtimes.remove()
-        self.events.remove()
         self.context.remove()
 
 
@@ -114,7 +113,7 @@ class BeatProcessingTest(DowntimeProcessingTest):
 
         result = self._process()
 
-        self.assertTrue(result)
+        self.assertTrue(len(result))
 
 
 if __name__ == '__main__':

@@ -23,6 +23,8 @@ from collections import OrderedDict, Iterable
 from canopsis.common.init import basestring
 from canopsis.common.utils import lookup
 
+from json import loads as jsonloads
+
 
 class Configuration(object):
     """
@@ -360,6 +362,10 @@ class Parameter(object):
     Provide a value (None by default) and a parser (str by default).
     """
 
+    class Error(Exception):
+        """Handle parameter errors.
+        """
+
     def __init__(
         self, name, parser=None, value=None, critical=False,
         local=True, asitem=None
@@ -440,23 +446,67 @@ class Parameter(object):
         self._value = None
 
     @staticmethod
-    def array(item_type=str):
-        """
-        Get an array from an input value where items are separated by ','
-        """
-
-        def split(value):
-            return [item_type(v) for v in value.split(',')]
-
-        return split
-
-    @staticmethod
     def bool(value):
         return value == 'True' or value == 'true' or value == '1'
 
     @staticmethod
     def path(value):
         return lookup(value)
+
+    @staticmethod
+    def json(value):
+        """Get a data from a json data format.
+
+        :param str value: json format to parse.
+        :return: data.
+        :rtype: str, list, dict, int, float or bool
+        """
+
+        return jsonloads(value)
+
+    @staticmethod
+    def _typedjson(value, cls):
+        """Private static method which uses the json method and check if result
+        inherits from the cls. Otherwise, raise an error.
+
+        :param str value: value to parse in a json format.
+        :param type cls: expected result class.
+        :return: parsed value.
+        :rtype: cls
+        """
+
+        result = Parameter.json(value)
+
+        if not isinstance(result, cls):
+            raise Parameter.Error(
+                'Wrong type: {0}. {1} expected.'.format(value, cls)
+            )
+
+        return result
+
+    @staticmethod
+    def hashmap(value):
+        """Get a hashmap from a dict json format.
+
+        :param str value: dictionary json format to parse.
+        :return: parsed dictionary.
+        :rtype: dict
+        :raises: Parameter.Error if value is not a dict json format.
+        """
+
+        return Parameter._typedjson(value, dict)
+
+    @staticmethod
+    def array(value):
+        """Get an array from a array json format.
+
+        :param str value: array json format to parse.
+        :return: parsed array.
+        :rtype: list
+        :raises: Parameter.Error if value is not a list json format.
+        """
+
+        return Parameter._typedjson(value, list)
 
 
 class ParamList(object):

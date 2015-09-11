@@ -20,76 +20,140 @@
 
 from time import time
 
-from canopsis.old.storage import get_storage
 from canopsis.old.account import Account
 from canopsis.old.record import Record
 from canopsis.old.rabbitmq import Amqp
+from canopsis.middleware.registry import MiddlewareRegistry
+from canopsis.common.utils import get_first
 from canopsis.event import get_routingkey
-
 from canopsis.engines.core import publish
-#from canopsis.context.manager import Context
-#from canopsis.check.manager import CheckManager
-from canopsis.configuration.configurable import Configurable
 from canopsis.configuration.configurable.decorator import (
     add_category, conf_paths
 )
+from canopsis.configuration.parameters import Parameter
+from canopsis.task.core import register_task, get_task
+from canopsis.check.manager import CheckManager
 
-from pymongo.errors import BulkWriteError
+from copy import deepcopy
 
-legend_type = ['soft', 'hard']
 OFF = 0
 ONGOING = 1
 STEALTHY = 2
-BAGOT = 3
+FLAPPING = 3
 CANCELED = 4
 
 CONF_PATH = 'check/archiver.conf'
 CATEGORY = 'ARCHIVER'
 
 
+class StatusConfiguration(dict):
+    """Manage status configuration.
+
+    A status configuration links status task and code with a name.
+    """
+
+    CODE = 'code'  #: status code property name.
+    TASK = 'task'  #: status task property name.
+
+    def __init__(self, status):
+
+        super(StatusConfiguration, self).__init__(status)
+
+        self.status_name_by_code = {}
+
+        for name in self:
+            params = self[name]
+            self.status_name_by_code[params[self.CODE]] = name
+
+    def name(self, code):
+        """Get status name from input status code.
+
+        :param int code: status code.
+        :return: related status name.
+        :rtype: str
+        """
+
+        return self.status_name_by_code[code]
+
+    def task(self, status):
+        """Get task related to input status name/code.
+
+        :param status: status from where get the right task to process it.
+        :type status: int or str
+        :return: task function able to process an event with input status.
+        :rtype: function
+        """
+
+        if isinstance(status, int):
+            status = self.name(status)
+
+        result = get_task(self[status][StatusConfiguration.TASK])
+
+        return result
+
+
 @conf_paths(CONF_PATH)
 @add_category(CATEGORY)
-class Archiver(Configurable):
+class Archiver(MiddlewareRegistry):
+
+    class Error(Exception):
+        """Handle Archiver errors.
+        """
+
+    STATUS = 'status'  #: status event field name.
+
+    FLAPPING_FREQ = 'flapping_freq'  #: flapping freq attribute name.
+    FLAPPING_TIME = 'flapping_time'  #: flapping time attribute name.
+    STEALTHY_TIME = 'stealthy_time'  #: stealthy time attribute name.
+    STEALTHY_SHOW = 'stealthy_show'  #: stealthy show attribute name.
+    RESTORE_EVENT = 'restore_event'  #: restore event attribute name.
+    EXCLUSION_FIELDS = 'exclusion_fields'  #: exclusion fields attribute name.
+    STATUS_CONF = 'status_conf'  #: status attribute name.
+
+    DEFAULT_FLAPPING_FREQ = 10  #: default flapping freq value.
+    DEFAULT_FLAPPING_TIME = 3600  #: default flapping time value.
+    DEFAULT_STEALTHY_TIME = 360  #: default stealthy time value.
+    DEFAULT_STEALTHY_SHOW = 360  #: default stealthy show value.
+    DEFAULT_RESTORE_EVENT = True  #: default restore event value.
+
+    EVENTS_STORAGE = 'events_storage'  #: events storage name.
+    EVENTS_LOG_STORAGE = 'events_log_storage'  #: events log storage name.
+    CONF_STORAGE = 'conf_storage'  #: conf storage name.
+    STATUS_STORAGE = 'status_storage'  #: status storage name.
 
     def __init__(
-        self, namespace, confnamespace='object', storage=None, autolog=False,
-        *args, **kwargs
+            self,
+            autolog=False, exclusion_fields=None, status_conf=None,
+            events_storage=None, events_log_storage=None, conf_storage=None,
+            status_storage=None,
+            stealthy_time=DEFAULT_STEALTHY_TIME,
+            stealthy_show=DEFAULT_STEALTHY_SHOW,
+            flapping_freq=DEFAULT_FLAPPING_FREQ,
+            flapping_time=DEFAULT_FLAPPING_TIME,
+            restore_event=DEFAULT_RESTORE_EVENT,
+            *args, **kwargs
     ):
 
         super(Archiver, self).__init__(*args, **kwargs)
-        self.namespace = namespace
-        self.namespace_log = namespace + '_log'
 
-        # Bulk operation configuration
-        self.last_bulk_insert_date = time()
-        self.bulk_ids = []
-        # How many events can be buffered
-        self.bulk_amount = 500
-        # What is the maximum duration until bulk insert
-        self.bulk_delay = 3
-        self.incoming_events = {}
+        # set storages
+        self[Archiver.EVENTS_STORAGE] = events_storage
+        self[Archiver.EVENTS_LOG_STORAGE] = events_log_storage
+        self[Archiver.CONF_STORAGE] = conf_storage
+        self[Archiver.STATUS_STORAGE] = status_storage
+
+        # set attributes
+        self.stealthy_show = stealthy_show
+        self.stealthy_time = stealthy_time
+        self.flapping_freq = flapping_freq
+        self.flapping_time = flapping_time
+        self.restore_event = restore_event
+        self.exclusion_fields = exclusion_fields
+        self.status_conf = status_conf
 
         self.autolog = autolog
 
-        self.logger.debug("Init Archiver on %s" % namespace)
-
         self.account = Account(user="root", group="root")
-
-        if not storage:
-            self.logger.debug(" + Get storage")
-            self.storage = get_storage(
-                namespace=namespace,
-                logging_level=self.log_lvl
-            )
-        else:
-            self.storage = storage
-
-        self.conf_storage = get_storage(
-            namespace=confnamespace,
-            logging_level=self.log_lvl
-        )
-        self.conf_collection = self.conf_storage.get_backend(confnamespace)
-        self.collection = self.storage.get_backend(namespace)
 
         self.amqp = Amqp(
             logging_level=self.log_lvl,
@@ -97,184 +161,113 @@ class Archiver(Configurable):
         )
 
         self.reset_stealthy_event_duration = time()
-        self.reset_stats()
 
-    def reset_stats(self):
-        self.stats = {
-            'update': 0,
-            'insert ' + self.namespace: 0,
-            'insert ' + self.namespace_log: 0
-        }
+    @property
+    def status_conf(self):
+        """Get status configuration.
 
-    def beat(self):
+        :return: this status configuration.
+        :rtype: StatusConfiguration
+        """
 
-        self.logger.info(
-            (
-                'DB documents stats : ' +
-                'update: {} in events, ' +
-                'insert: {} in events, ' +
-                'insert: {} in events_log').format(
-                self.stats['update'],
-                self.stats['insert ' + self.namespace],
-                self.stats['insert ' + self.namespace_log]
-            )
-        )
-        self.reset_stats()
+        return self._status_conf
 
-    def process_insert_operations_collection(self, operations, collection):
+    @status_conf.setter
+    def status_conf(self, value):
+        """Change of status configuration.
 
-        self.stats['insert ' + collection] += len(operations)
+        :param value: new status configuration to use.
+        :type value: StatusConfiguration
+        """
 
-        if operations:
-            # is there any event to process ?
-            backend = self.storage.get_backend(collection)
-            bulk = backend.initialize_unordered_bulk_op()
-            for operation in operations:
-                record = Record(operation['event'])
-                record.type = "event"
-                event = record.dump()
-                bulk.insert(event)
-            try:
-                bulk.execute({'w': 0})
-            except BulkWriteError as bwe:
-                import pprint
-                pp = pprint.PrettyPrinter(indent=2)
-                self.logger.warning(pp.pformat(bwe.details))
-            self.logger.info('inserted log events {}'.format(len(operations)))
+        self._status = value
 
-    def process_update_operations(self, operations):
+    @property
+    def flapping_freq(self):
+        return self._flapping_freq
 
-        self.stats['update'] += len(operations)
+    @flapping_freq.setter
+    def flapping_freq(self, value):
+        self._flapping_freq = value
 
-        if operations:
-            # is there any event to process ?
-            backend = self.storage.get_backend('events')
-            bulk = backend.initialize_unordered_bulk_op()
-            for operation in operations:
-                bulk.find(operation['query']).update(operation['update'])
-            bulk.execute({'w': 0})
+    @property
+    def flapping_time(self):
+        return self._flapping_time
 
-    def process_insert_operations(self, insert_operations):
+    @flapping_time.setter
+    def flapping_time(self, value):
+        self._flapping_time = value
 
-        events = {}
-        events_log = {}
-        # Avoid same RK insert
-        for operation in insert_operations:
-            if '_id' not in operation['event']:
-                self.logger.error(
-                    'Unable to find _id value in event {}'.format(
-                        operation['event']
-                    )
-                )
-            else:
-                _id = operation['event']['_id']
+    @property
+    def restore_event(self):
+        return self._restore_event
 
-                if operation['collection'] == self.namespace:
-                    events[_id] = operation
-                elif operation['collection'] == self.namespace_log:
-                    _id = '{}.{}'.format(_id, time())
-                    operation['event']['_id'] = _id
-                    events_log[_id] = operation
-                else:
-                    self.logger.critical(
-                        'Wrong operation type {}'.format(
-                            operation['collection']
-                        )
-                    )
+    @restore_event.setter
+    def restore_event(self, value):
+        self._restore_event = value
 
-        self.process_insert_operations_collection(
-            events.values(),
-            'events'
-        )
-        self.process_insert_operations_collection(
-            events_log.values(),
-            'events_log'
-        )
+    @property
+    def exclusion_fields(self):
+        return self._exclusion_fields
+
+    @exclusion_fields.setter
+    def exclusion_fields(self, value):
+        self._exclusion_fields = value
 
     def reload_configuration(self):
-                # Default values
-        self.restore_event = True
-        self.bagot_freq = 10
-        self.bagot_time = 3600
-        self.stealthy_time = 360
-        self.stealthy_show = 360
 
-        state_config = self.conf_collection.find_one(
+        # reconfigure this Archiver
+        self.apply_configuration()
+
+        state_config = get_first(self[Archiver.CONF_STORAGE].find_elements(
             {'crecord_type': 'statusmanagement'}
-        )
+        ))
 
+        getconf = state_config.get
         if state_config is not None:
-            self.bagot_freq = state_config.get('bagot_freq', self.bagot_freq)
-            self.bagot_time = state_config.get('bagot_time', self.bagot_time)
-            self.stealthy_time = state_config.get(
-                'stealthy_time',
-                self.stealthy_time
-            )
-            self.stealthy_show = state_config.get(
-                'stealthy_show',
-                self.stealthy_show
-            )
-            self.restore_event = state_config.get(
-                'restore_event',
-                self.restore_event
-            )
-
-        self.logger.debug(
-            (
-                'Archiver configuration ->\n' +
-                ' bagot_freq {}\n' +
-                ' bagot_time {}\n' +
-                ' stealthy_show {}\n' +
-                ' stealthy_time {}'
-            ).format(
-                self.bagot_freq,
-                self.bagot_time,
-                self.stealthy_show,
-                self.stealthy_time
-            )
-        )
+            self.flapping_freq = getconf('flapping_freq', self.flapping_freq)
+            self.flapping_time = getconf('flapping_time', self.flapping_time)
+            self.stealthy_time = getconf('stealthy_time', self.stealthy_time)
+            self.stealthy_show = getconf('stealthy_show', self.stealthy_show)
+            self.restore_event = getconf('restore_event', self.restore_event)
 
     def reset_status_event(self, reset_type):
-
         """Trigger event status reset to off/on going status if event are in
-        BAGOT or STEALTHY status.
+        FLAPPING or STEALTHY status.
 
         :param reset_type: event status to consider and change.
-        :type int: This is en enum, can be either BAGOT or STEALTHY
+        :type int: This is en enum, can be either FLAPPING or STEALTHY
         """
 
         def _publish_event(event):
             rk = event.get('rk', get_routingkey(event))
-            self.logger.info("Sending event {}".format(rk))
+            self.logger.info("Sending event {0}".format(rk))
             publish(
                 event=event, rk=rk, publisher=self.amqp
             )
 
-        if reset_type not in [BAGOT, STEALTHY]:
-            self.logger.info('wrong reset type given, will not process')
+        if reset_type not in [FLAPPING, STEALTHY]:
+            self.logger.info('wrong reset type given, will not process.')
             return
 
         # Dynamic method parameter depends on reset type input
         compare_property = {
-            BAGOT: 'last_state_change',
+            FLAPPING: 'last_state_change',
             STEALTHY: 'ts_first_stealthy'
         }[reset_type]
 
         configuration_delay = {
-            BAGOT: self.bagot_time,
+            FLAPPING: self.flapping_time,
             STEALTHY: self.stealthy_show
         }[reset_type]
 
-        event_cursor = self.collection.find(
-            {
-                'crecord_type': 'event',
-                'status': reset_type
-            }
+        event_cursor = self[Archiver.EVENTS_STORAGE].find_elements(
+            query={'crecord_type': 'event', 'status': reset_type}
         )
 
         # Change all potention reset type events
         for event in event_cursor:
-            # This is a bagot event.
+            # This is a flapping event.
             is_show_delay_passed = \
                 time() - event[compare_property] >= configuration_delay
 
@@ -282,7 +275,7 @@ class Archiver(Configurable):
             if is_show_delay_passed:
 
                 self.logger.info(
-                    'Event {} no longer in status {}'.format(
+                    'Event {0} no longer in status {1}'.format(
                         event['rk'],
                         reset_type
                     )
@@ -293,21 +286,21 @@ class Archiver(Configurable):
                 event['pass_status'] = 1
                 _publish_event(event)
 
-    def is_bagot(self, event):
+    def is_flapping(self, event):
         """
         Args:
             event map of the current evet
         Returns:
-            ``True`` if the event is bagot
+            ``True`` if the event is flapping
             ``False`` otherwise
         """
 
         ts_curr = event['timestamp']
-        ts_first_bagot = event.get('ts_first_bagot', 0)
-        ts_diff_bagot = (ts_curr - ts_first_bagot)
-        freq = event.get('bagot_freq', -1)
+        ts_first_flapping = event.get('ts_first_flapping', 0)
+        ts_diff_flapping = ts_curr - ts_first_flapping
+        freq = event.get('flapping_freq', -1)
 
-        result = ts_diff_bagot <= self.bagot_time and freq >= self.bagot_freq
+        result = ts_diff_flapping <= self.flapping_time and freq >= self.flapping_freq
 
         return result
 
@@ -333,26 +326,26 @@ class Archiver(Configurable):
         """
 
         log = 'Status is set to {} for event {}'.format(status, event['rk'])
-        bagot_freq = event.get('bagot_freq', 0)
+        flapping_freq = event.get('flapping_freq', 0)
         values = {
             OFF: {
-                'freq': bagot_freq,
+                'freq': flapping_freq,
                 'name': 'Off'
             },
             ONGOING: {
-                'freq': bagot_freq,
+                'freq': flapping_freq,
                 'name': 'On going'
             },
             STEALTHY: {
-                'freq': bagot_freq,
+                'freq': flapping_freq,
                 'name': 'Stealthy'
             },
-            BAGOT: {
-                'freq': bagot_freq + 1,
+            FLAPPING: {
+                'freq': flapping_freq + 1,
                 'name': 'Bagot'
             },
             CANCELED: {
-                'freq': bagot_freq,
+                'freq': flapping_freq,
                 'name': 'Cancelled'
             }
         }
@@ -363,15 +356,26 @@ class Archiver(Configurable):
         # status is not properly managed until now
         if status != STEALTHY:
             event['status'] = status
+
         elif devent['state'] != 0 and event['state'] == 0:
             delta = time() - event['last_state_change']
+
             if delta < self.stealthy_time:
                 event['status'] = status
 
-        event['bagot_freq'] = values[status]['freq']
+        event['flapping_freq'] = values[status]['freq']
 
-        if status not in [STEALTHY, BAGOT]:
+        if status not in [STEALTHY, FLAPPING]:
             event['ts_first_stealthy'] = 0
+
+    def put_status(self, rk, status, data=None):
+
+        if data is None:
+            data = {}
+
+        data[Archiver.STATUS] = status
+
+        self[Archiver.STATUS_STORAGE][rk] = data
 
     def check_stealthy(self, devent, ts):
         """
@@ -384,7 +388,7 @@ class Archiver(Configurable):
         """
         result = False
 
-        if devent['status'] == STEALTHY:
+        if devent['status'] != STEALTHY:
             result = (ts - devent['ts_first_stealthy']) <= self.stealthy_show
 
         return result
@@ -402,64 +406,86 @@ class Archiver(Configurable):
 
         event_ts = event['timestamp']
 
-        event['bagot_freq'] = devent.get('bagot_freq', 0)
+        event['flapping_freq'] = devent.get('flapping_freq', 0)
         event['ts_first_stealthy'] = devent.get('ts_first_stealthy', 0)
-        event['ts_first_bagot'] = devent.get('ts_first_bagot', 0)
+        event['ts_first_flapping'] = devent.get('ts_first_flapping', 0)
         dstate = devent['state']
         # Increment frequency if state changed and set first occurences
-        if ((not dstate and event['state']) or
-                dstate and not event['state']):
+        if (
+                (not dstate and event['state']) or
+                dstate and not event['state']
+        ):
 
             if event['state']:
                 event['ts_first_stealthy'] = event_ts
             else:
                 event['ts_first_stealthy'] = event_ts
 
-            event['bagot_freq'] += 1
+            event['flapping_freq'] += 1
 
-            if not event['ts_first_bagot']:
-                event['ts_first_bagot'] = event_ts
+            if not event['ts_first_flapping']:
+                event['ts_first_flapping'] = event_ts
 
-        # Out of bagot interval, reset variables
-        if event['ts_first_bagot'] - event_ts > self.bagot_time:
-            event['ts_first_bagot'] = 0
-            event['bagot_freq'] = 0
+        # Out of flapping interval, reset variables
+        if event['ts_first_flapping'] - event_ts > self.flapping_time:
+            event['ts_first_flapping'] = 0
+            event['flapping_freq'] = 0
 
         # If not canceled, proceed to check the status
-        if (devent.get('status', ONGOING) != CANCELED
-            or (dstate != event['state']
-                and (self.restore_event
-                    or event['state'] == OFF
-                    or dstate == OFF))):
+        if (
+                devent.get('status', ONGOING) != CANCELED or
+                (
+                    dstate != event['state']
+                    and (
+                        self.restore_event or
+                        event['state'] == OFF or
+                        dstate == OFF
+                    )
+                )
+        ):
             # Check the stealthy intervals
             if self.check_stealthy(devent, event_ts):
-                if self.is_bagot(event):
-                    self.set_status(event, BAGOT)
+
+                if self.is_flapping(event):
+                    self.set_status(event, FLAPPING)
+
                 else:
                     self.set_status(event, STEALTHY, devent=devent)
+
             # Else proceed normally
+            elif event['state'] == OFF:
+                # If still non-alert, can only be OFF
+                if (
+                        not self.is_flapping(event)
+                        and not self.is_stealthy(event, devent['status'])
+                ):
+                    self.set_status(event, OFF)
+
+                elif self.is_flapping(event):
+                    self.set_status(event, FLAPPING)
+
+                elif self.is_stealthy(event, devent['status']):
+                    self.set_status(event, STEALTHY, devent=devent)
+
             else:
-                if (event['state'] == OFF):
-                    # If still non-alert, can only be OFF
-                    if (not self.is_bagot(event)
-                            and not self.is_stealthy(event, devent['status'])):
-                        self.set_status(event, OFF)
-                    elif self.is_bagot(event):
-                        self.set_status(event, BAGOT)
-                    elif self.is_stealthy(event, devent['status']):
-                        self.set_status(event, STEALTHY, devent=devent)
-                else:
-                    # If not bagot/stealthy, can only be ONGOING
-                    if (not self.is_bagot(event)
-                            and not self.is_stealthy(event, devent['status'])):
+                # If not flapping/stealthy, can only be ONGOING
+                if (
+                        not self.is_flapping(event)
+                        and not self.is_stealthy(event, devent['status'])
+                ):
+                    self.set_status(event, ONGOING)
+
+                elif self.is_flapping(event):
+                    self.set_status(event, FLAPPING)
+
+                elif self.is_stealthy(event, devent['status']):
+
+                    if devent['status'] == OFF:
                         self.set_status(event, ONGOING)
-                    elif self.is_bagot(event):
-                        self.set_status(event, BAGOT)
-                    elif self.is_stealthy(event, devent['status']):
-                        if devent['status'] == OFF:
-                            self.set_status(event, ONGOING)
-                        else:
-                            self.set_status(event, STEALTHY, devent=devent)
+
+                    else:
+                        self.set_status(event, STEALTHY, devent=devent)
+
         else:
             self.set_status(event, CANCELED)
 
@@ -469,91 +495,35 @@ class Archiver(Configurable):
             Processing is done on buffer to reduce database operations.
         """
 
+        result = None
+
         # As this was not done until now... setting event primary key
         event['_id'] = _id
+        # copy the event
+        event = deepcopy(event)
 
-        # Buffering event informations
-        self.bulk_ids.append(_id)
-        self.incoming_events[_id] = event
+        # get old event
+        devent = self[Archiver.EVENTS_STORAGE].get(_id=_id)
+        # set changed and new_event flags
+        changed = new_event = devent is None
 
-        # use the check manager in order to save the state
-        #entity_id = self.context.get_entity_id(event)
-        #self.check.state(ids=entity_id['id'], state=event['state'], cache=True)
-
-        # Processing many events condition computation
-        bulk_modulo = len(self.bulk_ids) % self.bulk_amount
-        elapsed_time = time() - self.last_bulk_insert_date
-
-        # When enough event buffered/time elapsed
-        # processing events buffers
-        if bulk_modulo == 0 or elapsed_time > self.bulk_delay:
-
-            insert_operations = []
-            update_operations = []
-
-            query = {'_id': {'$in': self.bulk_ids}}
-
-            devents = {}
-
-            # Put previous events in pretty data structure
-            backend = self.storage.get_backend(self.namespace)
-            for devent in backend.find(query):
-                devents[devent['_id']] = devent
-
-            # Try to match previous and new incoming event
-            for _id in self.incoming_events:
-                event = self.incoming_events[_id]
-                devent = None
-                if _id in devents:
-                    devent = devents[_id]
-                else:
-                    self.logger.info(
-                        u'Previous event for rk {} not found'.format(_id))
-
-                # Effective archiver processing call
-                operations = self.process_an_event(_id, event, devent)
-                for operation in operations:
-                    if operation['type'] == 'insert':
-                        insert_operations.append(operation)
-                    else:
-                        update_operations.append(operation)
-
-            self.process_insert_operations(insert_operations)
-            self.process_update_operations(update_operations)
-
-            # Buld processing done, reseting informations
-            self.bulk_ids = []
-            self.incoming_events = {}
-            self.last_bulk_insert_date = time()
-
-        # Half useless retro compatibility
-        if 'state' in event and event['state']:
-            return _id
-
-    def process_an_event(self, _id, event, devent):
-
-        operations = []
-
-        changed = False
-        new_event = False
-
+        # get state and state type
         state = event['state']
         state_type = event['state_type']
 
+        # get the right now moment
         now = int(time())
+        # and ensure timestamp equals timestamp
+        event.setdefault('timestamp', now)
 
-        event['timestamp'] = event.get('timestamp', now)
-        try:
-            # Get old record
-            exclusion_fields = {
-                'perf_data_array',
-                'processing'
-            }
+        if new_event:
 
-            if not devent:
-                new_event = True
-                # may have side effects on acks/cancels
-                devent = {}
+            devent = {}
+            # No old record
+            event['ts_first_stealthy'] = 0
+            old_state = state
+
+        else:
 
             old_state = devent['state']
             old_state_type = devent['state_type']
@@ -564,71 +534,80 @@ class Archiver(Configurable):
 
             if state != old_state:
                 event['previous_state'] = old_state
+                changed = True
 
-            if state != old_state or state_type != old_state_type:
+            elif state_type != old_state_type:
                 changed = True
 
             self.check_statuses(event, devent)
 
-        except:
-            # No old record
-            event['ts_first_stealthy'] = 0
-            changed = True
-            old_state = state
-
         if changed:
             # Tests if change is from alert to non alert
-            if ('last_state_change' in event
-                    and (state == 0 or (state > 0 and old_state == 0))):
+            if (
+                    'last_state_change' in event
+                    and (state == 0 or (state > 0 and old_state == 0))
+            ):
+
                 event['previous_state_change_ts'] = event['last_state_change']
-            event['last_state_change'] = event.get('timestamp', now)
+
+            event['last_state_change'] = event['timestamp']
 
         if new_event:
-            # copy avoid side effects
-            operations.append({
-                'type': 'insert',
-                'event': event.copy(),
-                'collection': 'events'
-            })
-            self.logger.info(u' + New event, have to log {}'.format(_id))
+            # insert the new event
+            record = Record(event)
+            record.type = 'event'
+            event = record.dump()
+            self[Archiver.EVENTS_STORAGE].put_element(element=event)
 
         else:
             change = {}
 
             # keep ack information if status does not reset event
             if 'ack' in devent:
+
                 if event['status'] == 0:
                     change['ack'] = {}
+
                 else:
                     change['ack'] = devent['ack']
 
             # keep cancel information if status does not reset event
             if 'cancel' in devent:
+
                 if event['status'] not in [0, 1]:
                     change['cancel'] = devent['cancel']
+
                 else:
                     change['cancel'] = {}
 
             # Remove ticket information in case state is back to normal
             # (both ack and ticket declaration case)
             if 'ticket_declared_author' in devent and event['status'] == 0:
+
                 change['ticket_declared_author'] = None
                 change['ticket_declared_date'] = None
 
             # Remove ticket information in case state is back to normal
             # (ticket number declaration only case)
             if 'ticket' in devent and event['status'] == 0:
+
                 del devent['ticket']
+
                 if 'ticket_date' in devent:
                     del devent['ticket_date']
 
             # Generate diff change from old event to new event
             for key in event:
-                if key not in exclusion_fields:
-                    if (key in event and
-                        key in devent and
-                            devent[key] != event[key]):
+
+                if key not in self.exclusion_fields:
+
+                    if (
+                            key in event and
+                            key in devent and
+                            devent[key] != event[key]
+                    ):
                         change[key] = event[key]
+
                     elif key in event and key not in devent:
                         change[key] = event[key]
 
@@ -646,6 +625,7 @@ class Archiver(Configurable):
             # if keep state was sent previously
             # then override state of new event
             if 'keep_state' not in event:
+
                 if not event_reset and devent.get('keep_state'):
                     change['state'] = devent['state']
 
@@ -655,14 +635,7 @@ class Archiver(Configurable):
                 change['output'] = devent.get('output', '')
 
             if change:
-                operations.append(
-                    {
-                        'type': 'update',
-                        'update': {'$set': change},
-                        'query': {'_id': _id},
-                        'collection': 'events'
-                    }
-                )
+                self[Archiver.EVENTS_STORAGE].update_elements(data=change)
 
         # I think that is the right condition to log
         have_to_log = event.get('previous_state', state) != state
@@ -672,15 +645,40 @@ class Archiver(Configurable):
             if 'ack' in devent:
                 event['ack'] = devent['ack']
 
-            self.logger.info(' + State changed, have to log {}'.format(_id))
+            _id = '{0}.{1}'.format(_id, time())
+            event['_id'] = _id
 
-            # copy avoid side effects
-            operations.append(
-                {
-                    'type': 'insert',
-                    'event': event.copy(),
-                    'collection': 'events_log'
-                }
+            if getattr(event, 'type', None) != 'event':
+                record = Record(event)
+                record.type = 'event'
+                event = record.dump()
+            self[Archiver.EVENTS_LOG_STORAGE].put_element(element=event)
+
+        # Half useless retro compatibility
+        if 'state' in event and event['state']:
+            result = _id
+
+        return result
+
+    def _conf(self, *args, **kwargs):
+
+        result = super(Archiver, self)._conf(*args, **kwargs)
+
+        content = [
+            Parameter(Archiver.FLAPPING_FREQ, int, 10),
+            Parameter(Archiver.FLAPPING_TIME, int, 3600),
+            Parameter(Archiver.STEALTHY_TIME, int, 360),
+            Parameter(Archiver.STEALTHY_SHOW, int, 360),
+            Parameter(Archiver.RESTORE_EVENT, Parameter.bool, True),
+            Parameter(Archiver.EXCLUSION_FIELDS, Parameter.array, []),
+            Parameter(
+                Archiver.STATUS_CONF,
+                parser=lambda value: StatusConfiguration(
+                    Parameter.hashmap(value)
+                )
             )
+        ]
 
-        return operations
+        result.add_unified_category(name=CATEGORY, new_content=content)
+
+        return result

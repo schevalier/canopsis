@@ -20,16 +20,11 @@
 
 from unittest import TestCase, main
 
-from canopsis.check.archiver import Archiver
+from canopsis.check.archiver import (
+    Archiver, OFF, ONGOING, STEALTHY, FLAPPING, CANCELED
+)
 
 ARCHIVER = None
-
-# Statuses
-OFF = 0
-ONGOING = 1
-STEALTHY = 2
-BAGOT = 3
-CANCELED = 4
 
 
 def setFields(_map, **kwargs):
@@ -40,27 +35,28 @@ def setFields(_map, **kwargs):
 class KnownValues(TestCase):
     def setUp(self):
         self.archiver = Archiver(
-            namespace='unittest',
+            db='test',
             autolog=True
         )
-        self.archiver.beat()
-        self.archiver.reset_status_event()
 
     def test_01_check_statuses(self):
 
+        rk = 'test_03_check_statuses'
+        ts = 14389
+
         devent = {
-            'rk': 'test_03_check_statuses',
+            'rk': rk,
             'status': 0,
-            'timestamp': 14389,
+            'timestamp': ts,
             'state': 0
         }
 
         event = {
-            'rk': 'test_03_check_statuses',
+            'rk': rk,
             'status': 0,
-            'timestamp': 14400,
+            'timestamp': ts + 11,
             'state': 0,
-            'last_state_change': 14090
+            'last_state_change': ts - 389
         }
 
         # Check that event stays off even if it appears
@@ -76,7 +72,7 @@ class KnownValues(TestCase):
         self.archiver.check_statuses(event, devent)
         self.assertEqual(event['status'], ONGOING)
         devent = event.copy()
-
+        print event, '\n', devent
         # Set state back to Ok, event should be Stealthy
         setFields(event, state=0)
         self.archiver.check_statuses(event, devent)
@@ -95,8 +91,8 @@ class KnownValues(TestCase):
                 setFields(event, state=0 if event['state'] else 1)
             self.archiver.check_statuses(event, devent)
             setFields(event, timestamp=(event['timestamp'] + 1))
-            if devent['bagot_freq'] >= self.archiver.bagot_freq:
-                self.assertEqual(event['status'], BAGOT)
+            if devent['bagot_freq'] >= self.archiver.flapping_freq:
+                self.assertEqual(event['status'], FLAPPING)
             devent = event.copy()
 
         # Check that the event is On Going if out of the Bagot time interval

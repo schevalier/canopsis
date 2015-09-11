@@ -78,10 +78,12 @@ class Configurables(dict):
             configurable = lookup(configurable)
 
         # if configurable is a class
-        if isclass(configurable) and issubclass(
-                configurable, configurable_type):
-                # instantiate a new configurable with input args and kwargs
-                configurable = configurable()
+        if (
+                isclass(configurable) and
+                issubclass(configurable, configurable_type)
+        ):
+            # instantiate a new configurable with input args and kwargs
+            configurable = configurable()
 
         # do nothing if configurable is not an instance of configurable_type
         if not isinstance(configurable, configurable_type):
@@ -148,9 +150,12 @@ class ConfigurableTypes(dict):
 
         else:
             # check if an old value exiss
-            if name in self.registry._configurables \
+            if (
+                    name in self.registry._configurables
                     and not isinstance(
-                        self.registry._configurables[name], configurable_type):
+                        self.registry._configurables[name], configurable_type
+                    )
+            ):
                 # if the old value is not an instance of newly type
                 self.registry.logger.warning(
                     "Old configurable {} removed. Not an instance of {}"
@@ -187,7 +192,7 @@ class ConfigurableRegistry(Configurable):
     CONFIGURABLE_TYPE_SUFFIX = '_type'  #: type config suffix
 
     def __init__(
-        self, configurables=None, configurable_types=None, *args, **kwargs
+            self, configurables=None, configurable_types=None, *args, **kwargs
     ):
         """
         :param configurables: dictionary of configurables by name.
@@ -231,9 +236,10 @@ class ConfigurableRegistry(Configurable):
         return result
 
     def apply_configuration(
-        self,
-        conf=None, conf_paths=None, drivers=None, logger=None, override=True,
-        *args, **kwargs
+            self,
+            conf=None, conf_paths=None, drivers=None, logger=None,
+            override=True,
+            *args, **kwargs
     ):
 
         super(ConfigurableRegistry, self).apply_configuration(
@@ -339,47 +345,89 @@ class ConfigurableRegistry(Configurable):
 
         return self._configurable_types
 
-    def __contains__(self, name):
+    def contains(self, name):
         """Redirection to self.configurables.__contains__.
         """
 
-        if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
-            return name in self._configurable_types
+        result = False
 
-        return name in self._configurables
+        if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
+            result = name in self._configurable_types
+
+        else:
+            result = name in self._configurables
+
+        return result
+
+    def __contains__(self, name):
+        """Redirection to self.contains.
+        """
+
+        return self.contains(name)
+
+    def get_configurable(self, name):
+        """Get configurable type or value, related to the given ``name``.
+
+        :param str name: configurable (type) to retrieve.
+        :return: if name ends with CONFIGURABLE_TYPE_SUFFIX, the configurable
+            type is returned. Otherwise, the configurable value is returned.
+        :raises: KeyError if name is not registered in the registry.
+        """
+
+        result = None
+
+        if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
+            result = self._configurable_types[name]
+
+        else:
+            result = self._configurables[name]
+
+        return result
 
     def __getitem__(self, name):
-        """Redirection to self.configurables.__getitem__.
+        """Redirection to self.get_configurable."""
+
+        return self.get_configurable(name)
+
+    def set_configurable(self, name, value):
+        """Change of configurable (type).
+
+        :param str name: configurable (type) name.
+        :param value: configurable (type) to use.
+        :type value: Configurable or type.
         """
 
         if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
-            return self._configurables_types[name]
-
-        return self._configurables[name]
-
-    def __setitem__(self, name, value):
-        """Redirection to self.configurables.__setitem__.
-        """
-
-        if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
-            self._configurables_types[name] = value
+            self._configurable_types[name] = value
 
         else:
             self._configurables[name] = value
 
-    def __delitem__(self, name):
+    def __setitem__(self, name, value):
+        """Redirection to self.set_configurable."""
+
+        self.set_configurable(name, value)
+
+    def del_configurable(self, name):
         """Redirection to self.configurables.__delitem__.
+        :param str name: configurable (type) name to remove.
         """
 
         if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
-            del self._configurables_types[name]
+            del self._configurable_types[name]
 
         else:
             del self._configurables[name]
 
+    def __delitem__(self, name):
+        """Redirection to self.del_configurable."""
+
+        self.del_configurable(name)
+
     def __iter__(self):
         """Redirection to iter(self.configurables).
         """
+
         return iter(self._configurables)
 
     @staticmethod
@@ -388,28 +436,3 @@ class ConfigurableRegistry(Configurable):
         """
 
         return "{0}_CONF".format(name.upper())
-
-    @staticmethod
-    def get_configurable(configurable, *args, **kwargs):
-        """Get a configurable instance from a configurable class/path/instance
-        and args, kwargs, None otherwise.
-
-        :param configurable: configurable path, class or instance
-        :type configurable: str, class or Configurable
-
-        :return: configurable instance or None if input configurable can not be
-            solved such as a configurable.
-        """
-
-        result = configurable
-
-        if isinstance(configurable, basestring):
-            result = lookup(configurable)
-
-        if issubclass(result, Configurable):
-            result = result(*args, **kwargs)
-
-        if not isinstance(result, Configurable):
-            result = None
-
-        return result

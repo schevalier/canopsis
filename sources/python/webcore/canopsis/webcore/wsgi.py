@@ -51,7 +51,7 @@ config = {
         Parameter('root_directory', parser=Parameter.path)
     ),
     'auth': (
-        Parameter('providers', parser=Parameter.array(), critical=True)
+        Parameter('providers', parser=Parameter.array, critical=True)
     ),
     'session': (
         Parameter('cookie_expires', parser=int),

@@ -10,8 +10,8 @@ Possible statuses
 * 0 - Off
 * 1 - On going
 * 2 - Stealthy
-* 3 - Bagot
-* 4 - cancel
+* 3 - Flapping
+* 4 - canceled
 
 
 *Off*
@@ -29,19 +29,19 @@ An Event is considered ``On going`` if its *Criticity* is in an alert state (> 0
 
 An Event is considered ``Stealthy`` if its *Criticity* changed from alert to stable in a specified amount of time.
 If the said Event has its *Criticity* changed again within the specified time, it is still considered ``Stealthy``.
-An Event will stay ``Stealthy`` for a specified time (See *stealthy_show_time*) and will then be ``Off`` if the last state was 0, ``On Going`` if it was an alert, or ``Bagot`` if it qualifies as such.
+An Event will stay ``Stealthy`` for a specified time (See *stealthy_show_time*) and will then be ``Off`` if the last state was 0, ``On Going`` if it was an alert, or ``Flapping`` if it qualifies as such.
 
-*Bagot*
-~~~~~~~
+*Flapping*
+~~~~~~~~~~
 
-An Event is considered ``Bagot`` if it has been changing from an alert state to a stable state a specific number of times on a specified period of time. (See *bagot_freq* and *bagot_time*)
+An Event is considered ``Flapping`` if it has been changing from an alert state to a stable state a specific number of times on a specified period of time. (See *flapping_freq* and *flapping_time*)
 
 
-*Cancel*
-~~~~~~~~
+*Canceled*
+~~~~~~~~~~
 
-An Event is considered ``cancel`` if the user flagged it as such from the Ux.
-An Event flagged as ``cancel`` will change state if it goes from an alert state to a stable state.
+An Event is considered ``canceled`` if the user flagged it as such from the Ux.
+An Event flagged as ``canceled`` will change state if it goes from an alert state to a stable state.
 Additionally, the user can specify if it should change state if its criticity changes within the various alert state or only between alert and stable states.
 
 
@@ -54,47 +54,44 @@ Additional informations
 -----------------------
 
 * ``Restore event`` : Boolean, equals ``True`` if the user wants an ``cancel`` event to change state when its criticity changes withing the various alert state, ``False`` if it changes only between alert and stable stated.
-* ``alert`` : An alert is an event in an alert state (i.e. with a *Criticity* greater than 0)
+* ``alert`` : An alert is an event in an alert state (i.e. with a *Criticity* greater than 0).
 
 
 Configuration
 -------------
 
-A `statusmanagement` crecord is needed for the configuration of the time intervals and frequencies, it has the following structure ::
+A `statusmanagement` crecord is needed for the configuration of the time intervals and frequencies, it has the following structure :
 
 
+.. code-block:: json
 
-  {
-        "type": "object",
-        "properties": {
-                "crecord_type": {
-                        "enum": ["statusmanagement"],
-                        "required": true
-                },
-                
-                "restore_event": {
-                        "type": "boolean",
-                        "required": true,
-                        "default": true
-                },
-
-                "bagot_time": {
-                        "type": "number",
-                        "required": true
-                },
-                "bagot_show": {
-                        "type": "number",
-                        "required": true
-                },
-                
-                "stealthy_time": {
-                        "type": "number",
-                        "required": true
-                },
-                "stealthy_show": {
-                        "type": "number",
-                        "required": true
-                }
-        }
-  }
-
+   {
+      "type": "object",
+      "properties": {
+         "crecord_type": {
+            "enum": ["statusmanagement"],
+            "required": true
+         },
+         "restore_event": {
+            "type": "boolean",
+            "required": true,
+            "default": true
+         },
+         "flapping_time": {
+            "type": "number",
+            "required": true
+         },
+         "flapping_show": {
+            "type": "number",
+            "required": true
+         },
+         "stealthy_time": {
+            "type": "number",
+            "required": true
+         },
+         "stealthy_show": {
+            "type": "number",
+            "required": true
+         }
+      }
+   }

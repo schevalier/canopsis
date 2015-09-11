@@ -45,7 +45,12 @@ class InvalidState(Exception):
         )
 
 
-@add_category(CATEGORY, content=Parameter('types', parser=Parameter.array()))
+@add_category(
+    CATEGORY,
+    content=[
+        Parameter('types', parser=Parameter.array)
+    ]
+)
 @conf_paths(CONF_PATH)
 class CheckManager(MiddlewareRegistry):
     """Manage entity checking state.
@@ -76,6 +81,9 @@ class CheckManager(MiddlewareRegistry):
     valid_states = [0, 1, 2, 3]
 
     def __init__(self, types=None, *args, **kwargs):
+        """
+        :param str(s) types: event types to process.
+        """
 
         super(CheckManager, self).__init__(*args, **kwargs)
 

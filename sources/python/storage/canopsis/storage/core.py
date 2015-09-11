@@ -724,6 +724,22 @@ class Storage(DataBase):
 
         self.remove_elements(ids=ids)
 
+    def update_elements(
+            self, data, query=None, multi=False, upsert=False, cache=False
+    ):
+        """Update elements with ``data`` and matching document with ``query``.
+
+        :param dict data: data to update in elements.
+        :param dict query: query which satisfies elements to update.
+        :param bool multi: if True (False by default), update all elements
+            matching input query. Otherwise, udpate the first matching element.
+        :param bool upsert: if True (False by default), create the element if
+            not exists.
+        :param bool cache: use query cache if True (False by default).
+        """
+
+        raise NotImplementedError()
+
     def put_element(self, element, _id=None, cache=False):
         """Put an element identified by input id.
 

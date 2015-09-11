@@ -19,6 +19,14 @@
 # ---------------------------------
 
 from canopsis.check.manager import CheckManager
+from canopsis.common.utils import singleton_per_scope
+from canopsis.check.archiver import (
+    Archiver, OFF, ONGOING, STEALTHY, FLAPPING, CANCELED
+)
+
+from copy import deepcopy
+
+from time import time
 
 
 def criticity(state_document, state, criticity=CheckManager.HARD):
@@ -70,3 +78,71 @@ def criticity(state_document, state, criticity=CheckManager.HARD):
                 last_name: last_state
             })
     return result
+
+
+@register_task('process_supervision_status')
+def process_supervision_status(event, archiver=None):
+
+    if archiver is None:  # initialiaze the archiver
+        archiver = singleton_per_scope(Archiver)
+
+    rk = event['rk']  # get event rk
+
+    devent = archiver[Archiver.EVENTS_STORAGE].get(_id=rk)  # get old event
+
+    task = None
+
+    if devent is None:  # if old event does not exist
+        if event[CheckManager.STATE] == 0:
+            task = archiver.status_conf.task('off')
+        else:
+            task = archiver.status_conf.task('ongoing')
+
+    else:  # process specific devent status
+        deventstatus = devent[Archiver.STATUS]
+        task = archiver.status_conf.task(deventstatus)
+
+    if task is None:  # raise an error if no task founded
+        raise Archiver.Error(
+            "No task found by {0} to process {1} (old {2}).".format(
+                archiver, event, devent
+            )
+        )
+    else:
+        # process the right task
+        task(event=event, devent=devent, archiver=archiver)
+
+
+@register_task('process_status_off')
+def process_status_off(event, devent=None, archiver=None):
+
+    if archiver is None:
+        archiver = singleton_per_scope(Archiver)
+
+    if event[CheckManager.STATE] == 0:  # if state is ok
+
+        if devent is None:  # if old event does not exist
+            archiver.set_status(OFF)
+
+        else:
+            archiver.set_status(ONGOING)
+
+    if event[CheckManager.STATE] != 0:  # do something only if state != 0
+        pass
+
+
+@register_task('archiver.ongoing')
+def process_status_ongoing(event, devent, archiver=None):
+    raise NotImplementedError()
+
+@register_task('archiver.stealthy')
+def process_status_stealthy(event, devent, archiver=None):
+    raise NotImplementedError()
+
+@register_task('archiver.flapping')
+def process_status_flapping(event, devent, archiver=None):
+    raise NotImplementedError()
+
+@register_task('archiver.cancel')
+def process_status_cancel(event, devent, archiver=None):
+    raise NotImplementedError()
