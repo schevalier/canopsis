@@ -47,7 +47,15 @@ class ConsoFactory(object):
     # formula
     # consolidation_method -> formula
     # mfilter -> metric
-    ORDINAR_KEYS = ("_id", "crecord_write_time", "enable", "loaded", "crecord_name", "crecord_type", "crecord_creation_time")
+    ORDINAR_KEYS = (
+        "_id",
+        "crecord_write_time",
+        "enable",
+        "loaded",
+        "crecord_name",
+        "crecord_type",
+        "crecord_creation_time"
+    )
     STATIC_KEYS = ("max", "warn", "aggregate_interval", "crit", "min", "unit")
     ADVANCED_KEYS = ("metric", "mfilter")
 
@@ -131,7 +139,6 @@ class ConsoFactory(object):
                 serie[k] = conso[k]
             except KeyError:
                 serie["loaded"] = True
-                #raise e
 
         # Set the static keys
         for k in self.STATIC_KEYS:
@@ -151,13 +158,14 @@ class ConsoFactory(object):
 
         # Convert regex here
         query = self.clean_mfilter(conso['mfilter'])
-        #all_metrics = self.convert_regex_to_metrics(conso['mfilter'])
-        #serie["metrics"] = all_metrics
+
         all_metrics = self.loads(self.NAMESPACE[2], query)
         # Set metrcis data
         serie["metrics"] = self.retreive_metrics(all_metrics)
         if len(all_metrics) > 0:
-            formula = self.build_formula(conso['consolidation_method'], all_metrics)
+            formula = self.build_formula(
+                conso['consolidation_method'], all_metrics
+            )
             # Set formula
             serie['serie'] = formula
 
@@ -236,7 +244,9 @@ class ConsoFactory(object):
         c_metric = ""
 
         for d in data:
-            c_metric = "/" + d[self.COMP] + "/" + d[self.RESR] + "/" + d[self.METR]
+            c_metric = u"/{}/{}/{}".format(
+                d[self.COMP], d[self.RESR], d[self.METR]
+            )
             c_metrics.append(c_metric)
 
         return c_metrics
@@ -256,7 +266,7 @@ class ConsoFactory(object):
         for c in components:
             for r in resources:
                 for m in metrics:
-                    c_metric = "/" + c + "/" + r + "/" + m
+                    c_metric = u"/{}/{}/{}".format(c, r, m)
                     c_metrics.append(c_metric)
 
         return c_metrics
@@ -267,7 +277,12 @@ class ConsoFactory(object):
 
     def build(self):
         consos = self.data
-        storage = Storage(self.root_account, namespace=self.COLLECTION, logging_level=DEBUG)
+        storage = Storage(
+            self.root_account,
+            namespace=self.COLLECTION,
+            logging_level=DEBUG
+        )
+
         for conso in consos:
             serie = self.factory(conso)
             # Store the consolidation into the database

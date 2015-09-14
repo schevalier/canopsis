@@ -387,14 +387,7 @@ class Configurable(object):
         .. TODO:: add watchers here
         """
 
-        #from canopsis.configuration.watcher import add_configurable,\
-        #    remove_configurable
-
-        # remove previous watching
-        #remove_configurable(self)
         self._conf_paths = tuple(value)
-        # add new watching
-        #add_configurable(self)
 
     @property
     def auto_conf(self):
