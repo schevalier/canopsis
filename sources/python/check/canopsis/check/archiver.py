@@ -104,12 +104,18 @@ class Archiver(MiddlewareRegistry):
         """Handle Archiver errors.
         """
 
+    # status keys
     STATUS = 'status'  #: status event field name.
+    VALUE = 'value'  #: status value key name
+    STATE = 'state'  #: state value key name
+    TIMESTAMP = 'timestamp'  #: timestamp value key name
+    LAST_STATE_CHANGE = 'last_state_change'  #: last state change ts key name
 
+    #: pending time when an alert state becomes stable
+    PENDING_TIME = 'pending_time'
     FLAPPING_FREQ = 'flapping_freq'  #: flapping freq attribute name.
     FLAPPING_TIME = 'flapping_time'  #: flapping time attribute name.
     STEALTHY_TIME = 'stealthy_time'  #: stealthy time attribute name.
-    STEALTHY_SHOW = 'stealthy_show'  #: stealthy show attribute name.
     RESTORE_EVENT = 'restore_event'  #: restore event attribute name.
     EXCLUSION_FIELDS = 'exclusion_fields'  #: exclusion fields attribute name.
     STATUS_CONF = 'status_conf'  #: status attribute name.

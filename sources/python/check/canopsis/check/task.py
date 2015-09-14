@@ -18,14 +18,12 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+from canopsis.common.init import basestring
 from canopsis.context.manager import Context
+from canopsis.task.core import register_task
 from canopsis.check.manager import CheckManager
 from canopsis.common.utils import singleton_per_scope
-from canopsis.check.archiver import (
-    Archiver, OFF, ONGOING, STEALTHY, FLAPPING, CANCELED
-)
-
-from copy import deepcopy
+from canopsis.check.archiver import Archiver, OFF, ONGOING, STEALTHY, FLAPPING
 
 from time import time
 
@@ -83,6 +81,8 @@ def criticity(state_document, state, criticity=CheckManager.HARD):
 
 @register_task('process_supervision_status')
 def process_supervision_status(event, archiver=None, context=None, **kwargs):
+    """Process supervision status related to an event.
+    """
 
     if context is None:
         context = singleton_per_scope(Context)
@@ -95,6 +95,7 @@ def process_supervision_status(event, archiver=None, context=None, **kwargs):
     entityid = context.get_entity_id(entity)
     state = event[CheckManager.STATE]
     status = archiver.get_status(entityid=entityid)  # get status
+    timestamp = event['timestamp']
 
     task = None  # task to run
 
@@ -116,13 +117,38 @@ def process_supervision_status(event, archiver=None, context=None, **kwargs):
 
     else:
         # process the right task
-        new_status = task(state=state, status=status, archiver=archiver)
+        new_status = task(
+            state=state, timestamp=timestamp, status=status, archiver=archiver
+        )
+        # update status content
+        update_status(state=state, status=new_status, timestamp=timestamp)
         # and save the status
         archiver.set_status(entityid=entityid, status=new_status)
 
 
-@register_task('process_status_off')
-def process_status_off(state=0, status=None, archiver=None, **kwargs):
+def update_status(state, status, timestamp):
+    """Update status content before storing it.
+    """
+
+    # ensure status is a dictionary
+    if isinstance(status, basestring):
+        status = {Archiver.VALUE: status}
+    # update timestamp
+    status[timestamp] = timestamp
+    # update state/last_state_change
+    if Archiver.STATE not in status:
+        status[Archiver.STATE] = state
+
+    elif state != status[Archiver.STATE]:
+        status[Archiver.LAST_STATE_CHANGE] = timestamp
+
+
+@register_task('archiver.off')
+def process_status_off(
+        state=0, timestamp=None, status=None, archiver=None, **kwargs
+):
+    """Process event where old status is off or does not exist and state is ok.
+    """
 
     result = status
 
@@ -133,98 +159,123 @@ def process_status_off(state=0, status=None, archiver=None, **kwargs):
         result = OFF
 
     else:
-        now = time()
-        result.update(
-            {
-                'value': ONGOING,
-                'state': state,
-                'last_state_change': now,
-                'timestamp': now
-            }
-        )
+        result[Archiver.VALUE] = ONGOING
+        result[Archiver.STATE] = state
 
     return result
 
 
 @register_task('archiver.ongoing')
-def process_status_ongoing(state=0, status=None, archiver=None, **kwargs):
+def process_status_ongoing(
+        state=0, timestamp=None, status=None, archiver=None, **kwargs
+):
+    """Process event where old status is ongoing or does not exist and state
+    nok.
+    """
 
     result = status
-
-    now = time()
 
     if archiver is None:
         archiver = singleton_per_scope(Archiver)
 
-    if state == 0:
-        ts = status['timestamp']
-        if (now - ts) < archiver.stealthy_show:  # is stealthy ?
-            result.update({
-                'value': STEALTHY,
-                'first_stealthy_time': now,
-                'state': state
-            })
-        else:
-            result = OFF
+    if timestamp is None:  # init timestamp
+        timestamp = time()
+
+    if state == 0:  # do something only if state is ok
+
+        # if flapping is not setted, do it
+        if Archiver.FLAPPING_FREQ not in status:
+            status[Archiver.FLAPPING_FREQ] = 1
+
+        # set pending time
+        if Archiver.PENDING_TIME not in status:
+            status[Archiver.PENDING_TIME] = timestamp
+
+        # get pending duration
+        pending_duration = timestamp - status[Archiver.PENDING_TIME]
+
+        if pending_duration < archiver.stealthy_time:  # is stealthy ?
+            result[Archiver.VALUE] = STEALTHY
+
+        elif pending_duration < archiver.flapping_time:  # is flapping ?
+            flapping_freq = status.get(Archiver.FLAPPING_FREQ, 1)
+
+            if flapping_freq >= archiver.flapping_freq:
+                result[Archiver.VALUE] = FLAPPING
+
+            else:  # increment flapping frequency and change to a stable status
+                status[Archiver.FLAPPING_FREQ] = flapping_freq + 1
+                status[Archiver.VALUE] = OFF
+
+        else:  # come back to a stable status
+            status[Archiver.VALUE] = OFF
 
     return result
 
 
 @register_task('archiver.stealthy')
-def process_status_stealthy(state=0, status=None, archiver=None, **kwargs):
+def process_status_stealthy(
+        status, state=0, timestamp=None, archiver=None, **kwargs
+):
+    """Process event where old status is stealthy.
+    """
 
     result = status
 
-    now = time()
+    if timestamp is None:
+        timestamp = time()
 
     if archiver is None:
         archiver = singleton_per_scope(Archiver)
 
-    ts = status['timestamp']
-    if (now - ts) < archiver.stealthy_show:  # is stealthy ?
-        result['state'] = state
+    pending_time = status[Archiver.PENDING_TIME]
+    pending_duration = timestamp - pending_time
 
-    elif state == 0:  # OFF status
-        result = OFF
+    if (
+            pending_duration > archiver.stealthy_time or
+            state == status[Archiver.STATE]
+    ):  # is not in stealthy ?
+        result[Archiver.VALUE] = OFF if state == 0 else ONGOING
 
-    else:  # ongoing status
-        result = {'value': ONGOING, 'state': state}
+    elif pending_duration < archiver.flapping_time:  # is flapping ?
+
+        flapping_freq = status.get(Archiver.FLAPPING_FREQ, 0)
+        if flapping_freq > archiver.flapping_freq:
+            result[Archiver.VALUE] = FLAPPING
+
+        else:
+            result[Archiver.FLAPPING_FREQ] = flapping_freq + 1
 
     return result
 
 
 @register_task('archiver.flapping')
 def process_status_flapping(state=0, status=None, archiver=None, **kwargs):
+    """Process event where old status is flapping.
+    """
 
     result = status
 
     if archiver is None:
         archiver = singleton_per_scope(Archiver)
 
-    freq = status.get('flapping_freq', 0)
+    pending_time = status[Archiver.PENDING_TIME]
+    old_state = status[Archiver.STATE]
 
-    if freq > archiver.flapping_freq:
-        if state == 0:
-            result = OFF
-
-        else:
-            result = {'value': ONGOING, 'state': state}
-
-    else:
-        result['flapping_freq'] = freq + 1
+    if (
+            pending_time > archiver.flapping_time or
+            state == old_state
+    ):
+        status[Archiver.VALUE] = OFF if state == 0 else ONGOING
 
     return result
 
-@register_task('archiver.cancel')
-def process_status_cancel(state=0, status=None, **kwargs):
 
-    result = status
+@register_task('archiver.canceled')
+def process_status_canceled(state=0, status=None, **kwargs):
+    """Process event where old status is canceled.
+    """
 
-    result.update(
-        {
-            'state': state,
-            'value': OFF if state == 0 else ONGOING
-        }
-    )
+    result = OFF if state == 0 else ONGOING
 
     return result
