@@ -25,6 +25,7 @@ from canopsis.old.record import Record
 from canopsis.old.rabbitmq import Amqp
 from canopsis.middleware.registry import MiddlewareRegistry
 from canopsis.common.utils import get_first
+from canopsis.common.init import basestring
 from canopsis.event import get_routingkey
 from canopsis.engines.core import publish
 from canopsis.configuration.configurable.decorator import (
@@ -79,12 +80,15 @@ class StatusConfiguration(dict):
         """Get task related to input status name/code.
 
         :param status: status from where get the right task to process it.
-        :type status: int or str
+        :type status: int or str or dict
         :return: task function able to process an event with input status.
         :rtype: function
         """
 
-        if isinstance(status, int):
+        if isinstance(status, dict):
+            status = self.name(status['code'])
+
+        elif isinstance(status, int):
             status = self.name(status)
 
         result = get_task(self[status][StatusConfiguration.TASK])
@@ -659,6 +663,48 @@ class Archiver(MiddlewareRegistry):
             result = _id
 
         return result
+
+    def get_event(self, rk):
+        """Get an event related to input rk.
+
+        :param str rk: event rk to find.
+        :return: ``rk`` event.
+        :rtype: dict
+        """
+
+        return self[Archiver.EVENTS_STORAGE].get(_id=rk)
+
+    def archive_event(self, event):
+        """Store an event.
+
+        :param dict event: event to store.
+        """
+
+        self[Archiver.EVENTS_STORAGE][event['rk']] = event
+
+    def set_status(self, entityid, status):
+        """Set entity status properties.
+
+        :param str entityid: entity id.
+        :param status: entity status to set.
+        :type status: dict or str
+        :param dict extra: extra properties to associate with the status.
+        """
+
+        if isinstance(status, basestring):
+            status = {'value': status}
+
+        self[Archiver.STATUS_STORAGE][entityid] = status
+
+    def get_status(self, entityid):
+        """Get entity status properties.
+
+        :param str entityid: entity id.
+        :return: entity status value.
+        :rtype: str
+        """
+
+        return self[Archiver.STATUS_STORAGE].get(_id=entityid)
 
     def _conf(self, *args, **kwargs):
 

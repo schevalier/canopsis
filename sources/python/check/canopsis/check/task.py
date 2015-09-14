@@ -18,6 +18,7 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+from canopsis.context.manager import Context
 from canopsis.check.manager import CheckManager
 from canopsis.common.utils import singleton_per_scope
 from canopsis.check.archiver import (
@@ -81,68 +82,149 @@ def criticity(state_document, state, criticity=CheckManager.HARD):
 
 
 @register_task('process_supervision_status')
-def process_supervision_status(event, archiver=None):
+def process_supervision_status(event, archiver=None, context=None, **kwargs):
+
+    if context is None:
+        context = singleton_per_scope(Context)
 
     if archiver is None:  # initialiaze the archiver
         archiver = singleton_per_scope(Archiver)
 
-    rk = event['rk']  # get event rk
+    # get entityid, state and status
+    entity = context.get_entity(event)
+    entityid = context.get_entity_id(entity)
+    state = event[CheckManager.STATE]
+    status = archiver.get_status(entityid=entityid)  # get status
 
-    devent = archiver[Archiver.EVENTS_STORAGE].get(_id=rk)  # get old event
+    task = None  # task to run
 
-    task = None
+    if status is None:  # if old event does not exist
 
-    if devent is None:  # if old event does not exist
-        if event[CheckManager.STATE] == 0:
+        if state == 0:
             task = archiver.status_conf.task('off')
+
         else:
             task = archiver.status_conf.task('ongoing')
 
     else:  # process specific devent status
-        deventstatus = devent[Archiver.STATUS]
-        task = archiver.status_conf.task(deventstatus)
+        task = archiver.status_conf.task(status)
 
     if task is None:  # raise an error if no task founded
         raise Archiver.Error(
-            "No task found by {0} to process {1} (old {2}).".format(
-                archiver, event, devent
-            )
+            "No task found by {0} to process {1}.".format(archiver, event)
         )
+
     else:
         # process the right task
-        task(event=event, devent=devent, archiver=archiver)
+        new_status = task(state=state, status=status, archiver=archiver)
+        # and save the status
+        archiver.set_status(entityid=entityid, status=new_status)
 
 
 @register_task('process_status_off')
-def process_status_off(event, devent=None, archiver=None):
+def process_status_off(state=0, status=None, archiver=None, **kwargs):
+
+    result = status
 
     if archiver is None:
         archiver = singleton_per_scope(Archiver)
 
-    if event[CheckManager.STATE] == 0:  # if state is ok
+    if state == 0:  # if state is ok twice, then final status is OFF
+        result = OFF
 
-        if devent is None:  # if old event does not exist
-            archiver.set_status(OFF)
+    else:
+        now = time()
+        result.update(
+            {
+                'value': ONGOING,
+                'state': state,
+                'last_state_change': now,
+                'timestamp': now
+            }
+        )
 
-        else:
-            archiver.set_status(ONGOING)
-
-    if event[CheckManager.STATE] != 0:  # do something only if state != 0
-        pass
+    return result
 
 
 @register_task('archiver.ongoing')
-def process_status_ongoing(event, devent, archiver=None):
-    raise NotImplementedError()
+def process_status_ongoing(state=0, status=None, archiver=None, **kwargs):
+
+    result = status
+
+    now = time()
+
+    if archiver is None:
+        archiver = singleton_per_scope(Archiver)
+
+    if state == 0:
+        ts = status['timestamp']
+        if (now - ts) < archiver.stealthy_show:  # is stealthy ?
+            result.update({
+                'value': STEALTHY,
+                'first_stealthy_time': now,
+                'state': state
+            })
+        else:
+            result = OFF
+
+    return result
+
 
 @register_task('archiver.stealthy')
-def process_status_stealthy(event, devent, archiver=None):
-    raise NotImplementedError()
+def process_status_stealthy(state=0, status=None, archiver=None, **kwargs):
+
+    result = status
+
+    now = time()
+
+    if archiver is None:
+        archiver = singleton_per_scope(Archiver)
+
+    ts = status['timestamp']
+    if (now - ts) < archiver.stealthy_show:  # is stealthy ?
+        result['state'] = state
+
+    elif state == 0:  # OFF status
+        result = OFF
+
+    else:  # ongoing status
+        result = {'value': ONGOING, 'state': state}
+
+    return result
+
 
 @register_task('archiver.flapping')
-def process_status_flapping(event, devent, archiver=None):
-    raise NotImplementedError()
+def process_status_flapping(state=0, status=None, archiver=None, **kwargs):
+
+    result = status
+
+    if archiver is None:
+        archiver = singleton_per_scope(Archiver)
+
+    freq = status.get('flapping_freq', 0)
+
+    if freq > archiver.flapping_freq:
+        if state == 0:
+            result = OFF
+
+        else:
+            result = {'value': ONGOING, 'state': state}
+
+    else:
+        result['flapping_freq'] = freq + 1
+
+    return result
 
 @register_task('archiver.cancel')
-def process_status_cancel(event, devent, archiver=None):
-    raise NotImplementedError()
+def process_status_cancel(state=0, status=None, **kwargs):
+
+    result = status
+
+    result.update(
+        {
+            'state': state,
+            'value': OFF if state == 0 else ONGOING
+        }
+    )
+
+    return result
