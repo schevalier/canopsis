@@ -1,0 +1,36 @@
+[
+    {
+        "loader_id": "root",
+        "loader_no_update": true,
+        "enable": true,
+        "shadowpasswd": "DC76E9F0C0006E8F919E0C515C66DBBA3982F785",
+        "contact": {
+            "name": "Administrator",
+            "address": ""
+        },
+        "authkey": "28987b90-5af1-11e5-9672-2c768aded7c6",
+        "crecord_type": "user",
+        "role": "admin",
+        "external": false,
+        "mail": "admin@host.org",
+        "_id": "root",
+        "crecord_name": "root"
+    },
+    {
+        "loader_id": "canopsis",
+        "loader_no_update": true,
+        "enable": true,
+        "shadowpasswd": "3f1889001882f411c2f476dd1f2fd0861fc6b49d",
+        "contact": {
+            "name": "Canopsis",
+            "address": ""
+        },
+        "authkey": "289ac4f4-5af1-11e5-9672-2c768aded7c6",
+        "crecord_type": "user",
+        "role": "Manager",
+        "external": false,
+        "mail": "canopsis@host.org",
+        "_id": "canopsis",
+        "crecord_name": "canopsis"
+    }
+]

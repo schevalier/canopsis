@@ -1,0 +1,245 @@
+[
+    {
+        "profile": [
+            null
+        ],
+        "crecord_type": "role",
+        "_id": "Visualisation",
+        "loader_id": "Visualisation",
+        "loader_no_update": true,
+
+        "crecord_name": "Visualisation"
+    },
+    {
+        "profile": [
+            null
+        ],
+        "crecord_type": "role",
+        "_id": "admin",
+        "loader_id": "admin",
+        "loader_no_update": true,
+
+        "crecord_name": "admin",
+        "rights": {
+            "actionbutton_history": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_ack": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_eventnavigation": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_cancel": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "menu_uisettings": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_connectordisable": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_info": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_canediturlfield": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "menu_aclconfig": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "view_event": {
+                "checksum": 7,
+                "crecord_type": "right"
+            },
+            "actionbutton_connectorgetstate": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "menu_pluginsconfig": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "menu_enginesconfig": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "list_filters": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_incident": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "tabs_showeditionmenu": {
+                "checksum": 1,
+                "crecord_type": "right"
+            },
+            "actionbutton_canuploadmibfile": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_changestate": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_connectoredit": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_connectorsetconf": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_connectorgetconf": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_uncancel": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_ticketnumber": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "list_search": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "menu_authsystems": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_connectorenable": {
+                "checksum": 15,
+                "crecord_type": "right"
+            }
+        }
+    },
+    {
+        "profile": [
+            null
+        ],
+        "crecord_type": "role",
+        "_id": "Supervision",
+        "loader_id": "Supervision",
+        "loader_no_update": true,
+
+        "crecord_name": "Supervision",
+        "rights": {
+            "actionbutton_ack": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "list_search": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "tabs_showeditionmenu": {
+                "checksum": 1,
+                "crecord_type": "right"
+            },
+            "list_filters": {
+                "checksum": 15,
+                "crecord_type": "right"
+            }
+        }
+    },
+    {
+        "profile": [
+            null
+        ],
+        "crecord_type": "role",
+        "_id": "Support",
+        "loader_id": "Support",
+        "loader_no_update": true,
+
+        "crecord_name": "Support",
+        "rights": {
+            "actionbutton_info": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_ack": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "tabs_showeditionmenu": {
+                "checksum": 1,
+                "crecord_type": "right"
+            },
+            "list_search": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_changestate": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_cancel": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "list_filters": {
+                "checksum": 15,
+                "crecord_type": "right"
+            }
+        }
+    },
+    {
+        "profile": [
+            null
+        ],
+        "crecord_type": "role",
+        "_id": "Manager",
+        "loader_id": "Manager",
+        "loader_no_update": true,
+
+        "crecord_name": "Manager",
+        "rights": {
+            "actionbutton_uncancel": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_history": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "list_filters": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "tabs_showeditionmenu": {
+                "checksum": 1,
+                "crecord_type": "right"
+            },
+            "menu_aclconfig": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "list_search": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "actionbutton_changestate": {
+                "checksum": 15,
+                "crecord_type": "right"
+            },
+            "menu_authsystems": {
+                "checksum": 15,
+                "crecord_type": "right"
+            }
+        }
+    }
+]
