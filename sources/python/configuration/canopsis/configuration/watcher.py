@@ -112,8 +112,11 @@ class Watcher(Configurable):
     SLEEPING_TIME = 'sleeping_time'
 
     DEFAULT_CONFIGURATION = Configuration(
-        Category(CATEGORY,
-            Parameter(SLEEPING_TIME, value=DEFAULT_SLEEPING_TIME, parser=int)))
+        Category(
+            CATEGORY,
+            Parameter(SLEEPING_TIME, value=DEFAULT_SLEEPING_TIME, parser=int)
+        )
+    )
 
     def __init__(self, sleeping_time=DEFAULT_SLEEPING_TIME, *args, **kwargs):
 
