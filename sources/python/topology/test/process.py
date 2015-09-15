@@ -56,8 +56,8 @@ class ProcessingTest(TestCase):
 
             event_processing(
                 event=event,
-                engine=self.processingTest,
-                manager=self.processingTest.manager
+                publisher=self,
+                tm=self.processingTest.manager
             )
 
     def setUp(self):
@@ -76,7 +76,7 @@ class ProcessingTest(TestCase):
         entity = self.context.get_entity(self.check)
         entity_id = self.context.get_entity_id(entity)
         self.node = TopoNode(entity=entity_id)
-        self.node.save(self.manager)
+        self.node.save(manager=self.manager)
         self.count = 0
         self.amqp = ProcessingTest._Amqp(self)
 
@@ -89,7 +89,9 @@ class ProcessingTest(TestCase):
         Test in case of not bound nodes.
         """
 
-        event_processing(event=self.check, engine=self, manager=self.manager)
+        event_processing(
+            event=self.check, publisher=self.amqp, manager=self.manager
+        )
         self.assertEqual(self.count, 0)
 
     def test_one_node(self):
@@ -98,11 +100,13 @@ class ProcessingTest(TestCase):
         """
 
         source = TopoNode()
-        source.save(self.manager)
+        source.save(manager=self.manager)
         edge = TopoEdge(sources=source.id, targets=self.node.id)
-        edge.save(self.manager)
+        edge.save(manager=self.manager)
 
-        event_processing(event=self.check, engine=self, manager=self.manager)
+        event_processing(
+            event=self.check, publisher=self.amqp, manager=self.manager
+        )
         self.assertEqual(self.count, 0)
 
     def test_change_state(self):
@@ -110,15 +114,14 @@ class ProcessingTest(TestCase):
         Test in case of change state.
         """
         # create a change state operation with minor state
-        change_state_conf = new_conf(
-            change_state,
-            state=Check.MINOR
-        )
+        change_state_conf = new_conf(change_state, state=Check.MINOR)
         self.node.operation = change_state_conf
-        self.node.save(self.manager)
+        self.node.save(manager=self.manager)
 
         self.node.process(event=self.check, manager=self.manager)
-        event_processing(event=self.check, engine=self, manager=self.manager)
+        event_processing(
+            event=self.check, publisher=self.amqp, manager=self.manager
+        )
 
         target = self.manager.get_elts(ids=self.node.id)
         self.assertEqual(target.state, Check.MINOR)
@@ -134,28 +137,28 @@ class ProcessingTest(TestCase):
         """
 
         # create a simple task which consists to change of state
-        change_state_conf = new_conf(
-            change_state,
-            state=Check.MINOR
-        )
+        change_state_conf = new_conf(change_state, state=Check.MINOR)
 
         # create a root node with the change state task
         root = TopoNode(operator=change_state_conf)
-        root.save(self.manager)
+        root.save(manager=self.manager)
         # create a node with the change state task
         node = TopoNode(operator=change_state_conf)
-        node.save(self.manager)
+        node.save(manager=self.manager)
         # create a leaf with the change state task
         self.node.operation = change_state_conf
-        self.node.save(self.manager)
+        self.node.save(manager=self.manager)
         # link node to root
         rootnode = TopoEdge(targets=root.id, sources=node.id)
-        rootnode.save(self.manager)
+        rootnode.save(manager=self.manager)
         # link self.node to node
         self_node = TopoEdge(targets=node.id, sources=self.node.id)
-        self_node.save(self.manager)
+        self_node.save(manager=self.manager)
 
-        event_processing(event=self.check, engine=self, manager=self.manager)
+        event_processing(
+            event=self.check, publisher=self.amqp, tm=self.manager,
+            ctx=self.context
+        )
         self.assertEqual(self.count, 3)
 
         self.node = self.manager.get_elts(ids=self.node.id)

@@ -47,12 +47,11 @@ DOWNTIME_QUERY = PBehaviorManager.get_query(behaviors=DOWNTIME)
 
 @register_task
 def event_processing(
-    engine, event, context=None, manager=None, logger=None, **kwargs
+        event, context=None, manager=None, logger=None, **kwargs
 ):
     """Process input event.
 
     :param dict event: event to process.
-    :param Engine engine: engine which consumes the event.
     :param Context manager: context manager to use. Default is shared ctxmgr.
     :param PBehaviorManager manager: pbehavior manager to use. Default is
         pbmgr.
@@ -107,10 +106,9 @@ def event_processing(
 
 
 @register_task
-def beat_processing(engine, context=None, manager=None, logger=None, **kwargs):
+def beat_processing(context=None, manager=None, logger=None, **kwargs):
     """Process periodic task.
 
-    :param Engine engine: engine which consumes the event.
     :param Context manager: context manager to use. Default is shared ctxmgr.
     :param PBehaviorManager manager: pbehavior manager to use. Default is
         pbmgr.

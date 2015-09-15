@@ -49,7 +49,8 @@ PUBLISHER = 'publisher'
 
 @register_task
 def event_processing(
-        engine, event, manager=None, logger=None, ctx=None, tm=None, cm=None,
+        publisher, event, manager=None, logger=None,
+        ctx=None, tm=None, cm=None,
         **kwargs
 ):
     """Process input event in getting topology nodes bound to input event
@@ -58,7 +59,7 @@ def event_processing(
     One topology nodes are founded, executing related rules.
 
     :param dict event: event to process.
-    :param Engine engine: engine which consumes the event.
+    :param publisher: publisher which publishes the event.
     :param TopologyManager manager: topology manager to use.
     :param Logger logger: logger to use in this task.
     :param Context ctx:
@@ -88,16 +89,18 @@ def event_processing(
             entity = ctx.get_entity(event)
             entity_id = ctx.get_entity_id(entity)
             elt_id = ctx.get_name(entity_id)
-            logger.debug("elt_id {0}".format(elt_id))
+            if logger is not None:
+                logger.debug("elt_id {0}".format(elt_id))
             # process all targets
             elt = tm.get_elts(ids=elt_id)
             if elt is not None:
                 targets = tm.get_targets(ids=elt_id)
-                logger.debug("targets {0}".format(targets))
+                if logger is not None:
+                    logger.debug("targets {0}".format(targets))
                 # process and save all targets
                 for target in targets:
                     target.process(
-                        event=event, publisher=engine.amqp,
+                        event=event, publisher=publisher,
                         manager=tm, source=elt_id,
                         logger=logger,
                         **kwargs
@@ -108,13 +111,15 @@ def event_processing(
             entity = ctx.get_entity(event)
             if entity is not None:
                 entity_id = ctx.get_entity_id(entity)
-                logger.debug("entity_id {0}".format(entity_id))
+                if logger is not None:
+                    logger.debug("entity_id {0}".format(entity_id))
                 elts = tm.get_elts(info={TopoNode.ENTITY: entity_id})
-                logger.debug("elts {0}".format(elts))
+                if logger is not None:
+                    logger.debug("elts {0}".format(elts))
                 # process all elts
                 for elt in elts:
                     elt.process(
-                        event=event, publisher=engine.amqp,
+                        event=event, publisher=publisher,
                         manager=tm, logger=logger,
                         **kwargs
                     )

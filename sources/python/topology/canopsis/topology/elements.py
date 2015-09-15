@@ -159,18 +159,18 @@ class TopoVertice(BaseTaskedVertice):
 
         # save old state
         old_state = self.state
+
         # process task
         result = super(TopoVertice, self).process(
             event=event, publisher=publisher, manager=manager, source=source,
             logger=logger,
             **kwargs
         )
+
         # compare old state and new state
         if self.state != old_state:
             # update edges
-            targets_by_edge = manager.get_targets(
-                ids=self.id, add_edges=True
-            )
+            targets_by_edge = manager.get_targets(ids=self.id, add_edges=True)
             for edge_id in targets_by_edge:
                 edge, _ = targets_by_edge[edge_id]
                 # update edge state

@@ -588,6 +588,4 @@ def publish(event, publisher, rk=None, exchange=None, logger=None, **kwargs):
     if rk is None:
         rk = get_routingkey(event)
 
-    publisher.publish(
-        event, rk, exchange
-    )
+    publisher.publish(event, rk, exchange)

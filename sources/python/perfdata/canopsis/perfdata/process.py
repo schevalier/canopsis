@@ -18,24 +18,24 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-from canopsis.task.core import register_task
+"""Perfdata event processing.
+"""
 
+from canopsis.task.core import register_task
+from canopsis.common.utils import singleton_per_scope
 from canopsis.perfdata.manager import PerfData
 from canopsis.context.manager import Context
 
 from copy import deepcopy
 
 
-perfdatamgr = PerfData()
-
-
 @register_task
-def event_processing(engine, event, manager=None, logger=None, **kwargs):
+def event_processing(event, manager=None, logger=None, **kwargs):
     """Perfdata engine synchronous processing.
     """
 
     if manager is None:
-        manager = perfdatamgr
+        manager = singleton_per_scope(PerfData)
 
     # Get perfdata
     perf_data = event.get('perf_data')
@@ -88,12 +88,12 @@ def event_processing(engine, event, manager=None, logger=None, **kwargs):
     # remove perf_data_keys where values are None
     for index, perf_data in enumerate(event['perf_data_array']):
 
-        perf_data_array_with_Nones = event['perf_data_array'][index]
+        perf_data_array_with_nones = event['perf_data_array'][index]
 
         event['perf_data_array'][index] = {
-            name: perf_data_array_with_Nones[name]
-            for name in perf_data_array_with_Nones
-            if perf_data_array_with_Nones[name] is not None
+            name: perf_data_array_with_nones[name]
+            for name in perf_data_array_with_nones
+            if perf_data_array_with_nones[name] is not None
         }
 
     logger.debug('perf_data_array: {0}'.format(perf_data_array))

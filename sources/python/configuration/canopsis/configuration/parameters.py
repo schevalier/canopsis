@@ -498,15 +498,24 @@ class Parameter(object):
 
     @staticmethod
     def array(value):
-        """Get an array from a array json format.
+        """Get an array from:
 
-        :param str value: array json format to parse.
+        - an array json format.
+        - a list of data separated by commas.
+
+        :param str value: array format to parse.
         :return: parsed array.
         :rtype: list
         :raises: Parameter.Error if value is not a list json format.
         """
 
-        return Parameter._typedjson(value, list)
+        if value[0] == '[':
+            result = Parameter._typedjson(value, list)
+
+        else:
+            result = list(item for item in value.split(','))
+
+        return result
 
 
 class ParamList(object):

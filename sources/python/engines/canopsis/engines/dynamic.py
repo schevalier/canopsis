@@ -133,17 +133,14 @@ class engine(Engine, Configurable):
     def work(self, event, msg, *args, **kwargs):
 
         result = self._event_processing(
-            engine=self, event=event, msg=msg, logger=self.logger,
+            publisher=self.amqp, event=event, msg=msg, logger=self.logger,
             *args, **kwargs
         )
 
         return result
 
     def beat(self, *args, **kwargs):
-        self._beat_processing(
-            engine=self, logger=self.logger,
-            *args, **kwargs
-        )
+        self._beat_processing(logger=self.logger, *args, **kwargs)
 
     @property
     def params(self):
@@ -216,14 +213,14 @@ def load_dynamic_engine(name, *args, **kwargs):
     return result
 
 
-def event_processing(engine, event, ctx=None, **params):
+def event_processing(event, publisher, ctx=None, **params):
     """
     Event processing signature to respect in order to process an event.
 
     A condition may returns a boolean value.
 
-    :param Engine engine: engine which process the event.
     :param dict event: event to process.
+    :param publisher: event publisher.
     :param dict ctx: event processing context.
     :param dict params: event processing additional parameters.
     """
@@ -231,10 +228,9 @@ def event_processing(engine, event, ctx=None, **params):
     return event
 
 
-def beat_processing(engine, **params):
+def beat_processing(**params):
     """
     Beat processing signature to respect in order to execute a periodic task.
 
-    :param Engine engine: engine which executes the beat.
     :param dict params: beat processing additional parameters.
     """

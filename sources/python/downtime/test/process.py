@@ -63,7 +63,7 @@ class EventProcessingTest(DowntimeProcessingTest):
     def _process(self):
 
         event = event_processing(
-            self, self.test_event,
+            event=self.test_event,
             downtimes=self.downtimes,
             events=self.events
         )
@@ -94,7 +94,6 @@ class BeatProcessingTest(DowntimeProcessingTest):
     def _process(self):
 
         beat_processing(
-            self,
             downtimes=self.downtimes,
             events=self.events,
             context=self.context
