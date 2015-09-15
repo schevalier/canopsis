@@ -136,7 +136,8 @@ class TestStatusConfiguration(TestCase):
         """
 
         self.assertRaises(
-            KeyError, self.status_conf.value, TestStatusConfiguration.__name__
+            StatusConfiguration.Error,
+            self.status_conf.value, TestStatusConfiguration.__name__
         )
 
     def test_name(self):
@@ -152,7 +153,7 @@ class TestStatusConfiguration(TestCase):
         """
 
         self.assertRaises(
-            KeyError, self.status_conf.name, self.value + 1
+            StatusConfiguration.Error, self.status_conf.name, self.value + 1
         )
 
     def test_task_by_name(self):
@@ -171,20 +172,42 @@ class TestStatusConfiguration(TestCase):
 
         self.assertEqual(task, setFields)
 
+    def test_task_by_dict(self):
+        """Test wit a known task by dict.
+        """
+
+        status = {StatusConfiguration.CODE: self.value}
+
+        task = self.status_conf.task(status)
+
+        self.assertEqual(task, setFields)
+
     def test_unknowntask_by_name(self):
         """Test wit an unknown task by name.
         """
 
         self.assertRaises(
-            KeyError, self.status_conf.task, TestStatusConfiguration.__name__
+            StatusConfiguration.Error,
+            self.status_conf.task, TestStatusConfiguration.__name__
         )
 
     def test_unknowntask_by_value(self):
         """Test wit an unknown task by value.
         """
 
-        self.assertRaises(KeyError, self.status_conf.task, self.value + 1)
+        self.assertRaises(
+            StatusConfiguration.Error, self.status_conf.task, self.value + 1
+        )
 
+    def test_unknowntask_by_dict(self):
+        """Test wit an unknown task by dict.
+        """
+
+        status = {StatusConfiguration.CODE: self.value + 1}
+
+        self.assertRaises(
+            StatusConfiguration.Error, self.status_conf.task, status
+        )
 
 if __name__ == "__main__":
     main()

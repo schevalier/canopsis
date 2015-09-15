@@ -53,6 +53,10 @@ class StatusConfiguration(dict):
     A status configuration links status task and code with a name.
     """
 
+    class Error(Exception):
+        """Handle StatusConfiguration errors.
+        """
+
     CODE = 'code'  #: status code property name.
     TASK = 'task'  #: status task property name.
 
@@ -74,7 +78,23 @@ class StatusConfiguration(dict):
         :rtype: int
         """
 
-        return self[name][StatusConfiguration.CODE]
+        result = None
+
+        try:
+            value = self[name]
+        except KeyError:
+            raise StatusConfiguration.Error(
+                'Status {0} not registered in {1}'.format(name, self)
+            )
+        else:
+            try:
+                result = value[StatusConfiguration.CODE]
+            except KeyError:
+                raise StatusConfiguration.Error(
+                    'Status {0} has no code in {1}'.format(name, value)
+                )
+
+        return result
 
     def name(self, code):
         """Get status name from input status code.
@@ -84,7 +104,16 @@ class StatusConfiguration(dict):
         :rtype: str
         """
 
-        return self.status_name_by_code[code]
+        try:
+            result = self.status_name_by_code[code]
+
+        except KeyError:
+            raise StatusConfiguration.Error(
+                'Code {0} does not exist in {1}'.format(code, self)
+            )
+
+        else:
+            return result
 
     def task(self, status):
         """Get task related to input status name/code.
@@ -95,15 +124,41 @@ class StatusConfiguration(dict):
         :rtype: function
         """
 
+        value = status
+
         if isinstance(status, dict):
-            status = self.name(status['code'])
+            name = self.name(status[StatusConfiguration.CODE])
+            value = self[name]
 
         elif isinstance(status, int):
-            status = self.name(status)
+            name = self.name(status)
+            value = self[name]
 
-        result = get_task(self[status][StatusConfiguration.TASK])
+        elif isinstance(status, basestring):
+            try:
+                value = self[status]
+            except KeyError:
+                raise StatusConfiguration.Error(
+                    'Status {0} not registered in {1}'.format(status, self)
+                )
 
-        return result
+        try:
+            taskpath = value[StatusConfiguration.TASK]
+
+        except KeyError:
+            raise StatusConfiguration.Error(
+                'No task registered in {0} ({1})'.format(status, value)
+            )
+
+        else:
+            result = get_task(taskpath)
+
+            if result is None:
+                raise StatusConfiguration.Error(
+                    'No task registered to {0} in {1}'.format(status, value)
+                )
+
+            return result
 
 
 @conf_paths(CONF_PATH)
