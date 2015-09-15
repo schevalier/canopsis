@@ -321,8 +321,8 @@ class GraphTest(TestCase):
             graph = self.manager.get_graphs(ids=graph_id)
             graph_elts = graph.elts
             if graph_elts:
-                first_elt = graph.elts[0]
-                self.manager.remove_elts(ids=first_elt, graph_ids=graph.id)
+                first_elt = graph_elts[0]
+                self.manager.remove_elts(ids=first_elt, graph_ids=graph_id)
                 graph = self.manager.get_graphs(ids=graph_id)
                 self.assertEqual(len(graph.elts), len(graph_elts) - 1)
                 if len(graph.elts) > 1:
@@ -335,8 +335,6 @@ class GraphTest(TestCase):
         for index in range(len(self.graph_ids)):
             # get first "index" graph
             graph_ids = self.graph_ids[:index]
-            graphs = self.manager.get_graphs(ids=graph_ids)
-            graph_elts = graph.elts
             elt_id = self.vertice_ids[-1]
             self.manager.remove_elts(ids=elt_id, graph_ids=graph_ids)
             graphs = self.manager.get_graphs(ids=graph_ids)
@@ -357,40 +355,46 @@ class GraphTest(TestCase):
         self.assertEqual(len(neighbourhood), len(self.elts))
 
         # let's play with few vertices, edges and graphs
-        v0, v1, v2 = Vertice(type='0'), Vertice(type='1'), Vertice(type='2')
-        e0, e1, e2 = Edge(type='0'), Edge(type='1'), Edge(type='2')
-        g0, g1, g2 = Graph(type='0'), Graph(type='1'), Graph(type='2')
+        ve0, ve1, ve2 = Vertice(type='0'), Vertice(type='1'), Vertice(type='2')
+        ed0, ed1, ed2 = Edge(type='0'), Edge(type='1'), Edge(type='2')
+        gr0, gr1, gr2 = Graph(type='0'), Graph(type='1'), Graph(type='2')
 
-        # connect v0 to v1
-        e0.directed = True
-        e0.sources = [v0.id, v1.id, v2.id]
-        e0.targets = [g0.id, g1.id, g2.id]
+        # connect ve0 to ve1
+        ed0.directed = True
+        ed0.sources = [ve0.id, ve1.id, ve2.id]
+        ed0.targets = [gr0.id, gr1.id, gr2.id]
 
         # save all elements
-        v0.save(self.manager), v1.save(self.manager), v2.save(self.manager)
-        e0.save(self.manager), e1.save(self.manager), e2.save(self.manager)
-        g0.save(self.manager), g1.save(self.manager), g2.save(self.manager)
+        ve0.save(self.manager)
+        ve1.save(self.manager)
+        ve2.save(self.manager)
+        ed0.save(self.manager)
+        ed1.save(self.manager)
+        ed2.save(self.manager)
+        gr0.save(self.manager)
+        gr1.save(self.manager)
+        gr2.save(self.manager)
 
         # test ids
-        neighbourhood = set(self.manager.get_neighbourhood(ids=v0.id))
-        self.assertEqual(neighbourhood, {g0, g1, g2})
+        neighbourhood = set(self.manager.get_neighbourhood(ids=ve0.id))
+        self.assertEqual(neighbourhood, {gr0, gr1, gr2, ve0, ve1, ve2})
 
         # test sources
         neighbourhood = set(self.manager.get_neighbourhood(
-            ids=v0.id, sources=True))
-        self.assertEqual(neighbourhood, {g0, g1, g2, v0, v1, v2})
+            ids=ve0.id, orientation=GraphManager.SOURCES))
+        self.assertFalse(neighbourhood)
 
         # test not targets
         neighbourhood = set(self.manager.get_neighbourhood(
-            ids=v0.id, targets=False))
-        self.assertEqual(neighbourhood, set())
+            ids=ve0.id, orientation=GraphManager.TARGETS))
+        self.assertEqual(neighbourhood, {gr0, gr1, gr2})
 
         # test not directed
-        e0.directed = False
-        e0.save(self.manager)
+        ed0.directed = False
+        ed0.save(self.manager)
         neighbourhood = set(self.manager.get_neighbourhood(
-            ids=v0.id))
-        self.assertEqual(neighbourhood, {g0, g1, g2, v0, v1, v2})
+            ids=ve0.id))
+        self.assertEqual(neighbourhood, {gr0, gr1, gr2, ve0, ve1, ve2})
 
         # test info
 

@@ -43,7 +43,7 @@ class KnownValues(TestCase):
             autolog=True
         )
 
-    def test_01_check_statuses(self):
+    def _test_01_check_statuses(self):
 
         rk = 'test_03_check_statuses'
         ts = 14389

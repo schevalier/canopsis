@@ -492,7 +492,7 @@ class GraphManager(MiddlewareRegistry):
         )
 
     def get_neighbourhood(
-            self, ids=None, orientation=TARGETS, graph_ids=None,
+            self, ids=None, orientation=ALL, graph_ids=None,
             info=None, source_data=None, target_data=None,
             types=None, source_types=None, target_types=None,
             edge_ids=None, edge_types=None, add_edges=False,
