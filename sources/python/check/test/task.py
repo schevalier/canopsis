@@ -56,8 +56,8 @@ class TestArchiver(object):
 
         super(TestArchiver, self).__init__()
 
-        self.flapping_time = 3600
         self.stealthy_time = 3600
+        self.flapping_time = self.stealthy_time * 2
         self.flapping_freq = 5
         self.status_conf = StatusConfiguration(
             {
@@ -85,7 +85,18 @@ class TestArchiver(object):
         )
 
 
-class UpdateStatusTestCase(TestCase):
+class TestProcessStatus(TestCase):
+    """Common test class for process_* functions.
+
+    This class uses a local TestArchiver such as the archiver attribute.
+    """
+
+    def setUp(self):
+
+        self.archiver = TestArchiver()
+
+
+class UpdateStatusTestCase(TestProcessStatus):
     """Test the update_status function.
     """
 
@@ -99,7 +110,7 @@ class UpdateStatusTestCase(TestCase):
 
         new_status = update_status(
             state=state, status=status, timestamp=timestamp,
-            archiver=TestArchiver()
+            archiver=self.archiver
         )
 
         self.assertEqual(
@@ -107,7 +118,8 @@ class UpdateStatusTestCase(TestCase):
             {
                 Archiver.VALUE: ONGOING,
                 Archiver.STATE: state,
-                Archiver.TIMESTAMP: timestamp
+                Archiver.TIMESTAMP: timestamp,
+                Archiver.LAST_STATE_CHANGE: timestamp
             }
         )
 
@@ -121,7 +133,7 @@ class UpdateStatusTestCase(TestCase):
 
         new_status = update_status(
             state=state, status=status, timestamp=timestamp,
-            archiver=TestArchiver()
+            archiver=self.archiver
         )
 
         self.assertEqual(
@@ -129,7 +141,8 @@ class UpdateStatusTestCase(TestCase):
             {
                 Archiver.VALUE: ONGOING,
                 Archiver.STATE: state,
-                Archiver.TIMESTAMP: timestamp
+                Archiver.TIMESTAMP: timestamp,
+                Archiver.LAST_STATE_CHANGE: timestamp
             }
         )
 
@@ -143,7 +156,7 @@ class UpdateStatusTestCase(TestCase):
 
         new_status = update_status(
             state=state, status=status, timestamp=timestamp,
-            archiver=TestArchiver()
+            archiver=self.archiver
         )
 
         self.assertEqual(
@@ -151,7 +164,8 @@ class UpdateStatusTestCase(TestCase):
             {
                 Archiver.VALUE: ONGOING,
                 Archiver.STATE: state,
-                Archiver.TIMESTAMP: timestamp
+                Archiver.TIMESTAMP: timestamp,
+                Archiver.LAST_STATE_CHANGE: timestamp
             }
         )
 
@@ -167,7 +181,59 @@ class UpdateStatusTestCase(TestCase):
             Archiver.Error,
             update_status,
             state=state, status=status, timestamp=timestamp,
-            archiver=TestArchiver()
+            archiver=self.archiver
+        )
+
+    def test_last_statechange(self):
+        """Check calculus of the last_state_change.
+        """
+
+        timestamp = time()
+        state = rand()
+        status = {Archiver.STATE: state + 1, Archiver.VALUE: OFF}
+        new_status = update_status(
+            state=state, status=status, timestamp=timestamp,
+            archiver=self.archiver
+        )
+
+        self.assertEqual(
+            new_status[Archiver.LAST_STATE_CHANGE], timestamp
+        )
+
+    def test_last_statechange_no_state(self):
+        """Check calculus of the last_state_change.
+        """
+
+        timestamp = time()
+        state = rand()
+        status = {Archiver.VALUE: OFF}
+        new_status = update_status(
+            state=state, status=status, timestamp=timestamp,
+            archiver=self.archiver
+        )
+
+        self.assertEqual(
+            new_status[Archiver.LAST_STATE_CHANGE], timestamp
+        )
+
+    def test_nolast_statechange(self):
+        """Check calculus of the last_state_change.
+        """
+
+        timestamp = time()
+        state = rand()
+        status = {
+            Archiver.STATE: state,
+            Archiver.LAST_STATE_CHANGE: 0,
+            Archiver.VALUE: OFF
+        }
+        new_status = update_status(
+            state=state, status=status, timestamp=timestamp,
+            archiver=self.archiver
+        )
+
+        self.assertEqual(
+            new_status[Archiver.LAST_STATE_CHANGE], 0
         )
 
 
@@ -179,7 +245,7 @@ class ProcessSupervisionStatusTestCase(TestCase):
     pass
 
 
-class ProcessStatusCanceledTestCase(TestCase):
+class ProcessStatusCanceledTestCase(TestProcessStatus):
     """Test the process_status_canceled function.
     """
 
@@ -200,20 +266,246 @@ class ProcessStatusCanceledTestCase(TestCase):
         self.assertEqual(status, ONGOING)
 
 
-class ProcessStatusFlappingTestCase(TestCase):
-    pass
+class ProcessStatusFlappingTestCase(TestProcessStatus):
+    """Test the process_status_flapping function.
+    """
+
+    def test_stillflapping(self):
+        """Test with old flapping status.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.FLAPPING_FREQ: 1,
+            Archiver.PENDING_TIME: timestamp + self.archiver.flapping_time - 1,
+            Archiver.STATE: 0,
+            Archiver.VALUE: FLAPPING
+        }
+        newstatus = process_status_flapping(
+            state=1,
+            timestamp=timestamp, status=status, archiver=self.archiver
+        )
+
+        self.assertEqual(newstatus[Archiver.VALUE], FLAPPING)
+
+    def test_noflapping_off(self):
+        """Test end of flapping with OFF status.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.FLAPPING_FREQ: 1,
+            Archiver.PENDING_TIME: timestamp + self.archiver.flapping_time - 1,
+            Archiver.STATE: 0,
+            Archiver.VALUE: FLAPPING
+        }
+        newstatus = process_status_flapping(
+            state=0,
+            timestamp=timestamp, status=status, archiver=self.archiver
+        )
+
+        self.assertEqual(newstatus[Archiver.VALUE], OFF)
+
+    def test_noflapping_ongoing(self):
+        """Test end of flapping with OFF status.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.FLAPPING_FREQ: 1,
+            Archiver.PENDING_TIME: timestamp + self.archiver.flapping_time - 1,
+            Archiver.STATE: 1,
+            Archiver.VALUE: FLAPPING
+        }
+        newstatus = process_status_flapping(
+            state=1,
+            timestamp=timestamp, status=status, archiver=self.archiver
+        )
+
+        self.assertEqual(newstatus[Archiver.VALUE], ONGOING)
 
 
-class ProcessStatusOffTestCase(TestCase):
+class ProcessStatusOffTestCase(TestProcessStatus):
     """Test the process_status_off function.
     """
 
+    def test_off(self):
+        """Test with the off status.
+        """
 
-class ProcessStatusOngoingTestCase(TestCase):
-    pass
+        status = process_status_off(archiver=self.archiver)
+
+        self.assertEqual(status, OFF)
+
+    def test_ongoing(self):
+        """Test with an ongoing status.
+        """
+
+        timestamp = time()
+
+        new_status = process_status_off(
+            archiver=self.archiver, timestamp=timestamp, state=1
+        )
+
+        self.assertEqual(
+            new_status, {Archiver.VALUE: ONGOING, Archiver.STATE: 1}
+        )
 
 
-class ProcessStatusStealthyTestCase(TestCase):
+class ProcessStatusOngoingTestCase(TestProcessStatus):
+
+    def test_off(self):
+        """Test off status after both flapping and stealhy times.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.VALUE: ONGOING,
+            Archiver.TIMESTAMP: timestamp,
+            Archiver.PENDING_TIME: 0
+        }
+        new_status = process_status_ongoing(
+            archiver=self.archiver, status=status,
+            timestamp=timestamp
+        )
+
+        self.assertEqual(new_status[Archiver.VALUE], OFF)
+
+    def test_ongoing(self):
+        """Test ongoing status after both flapping and stealhy times.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.VALUE: ONGOING,
+            Archiver.TIMESTAMP: timestamp,
+            Archiver.PENDING_TIME: 0
+        }
+        new_status = process_status_ongoing(
+            state=1,
+            archiver=self.archiver, status=status,
+            timestamp=timestamp
+        )
+
+        self.assertEqual(new_status[Archiver.VALUE], ONGOING)
+
+    def test_stealthy(self):
+        """Test stealthy status.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.VALUE: ONGOING,
+            Archiver.TIMESTAMP: timestamp
+        }
+        new_status = process_status_ongoing(
+            archiver=self.archiver, status=status,
+            timestamp=timestamp
+        )
+
+        self.assertEqual(new_status[Archiver.VALUE], STEALTHY)
+
+    def test_stealthy_with_pending_time(self):
+        """Test stealthy status.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.VALUE: ONGOING,
+            Archiver.TIMESTAMP: timestamp,
+            Archiver.PENDING_TIME: timestamp
+        }
+        new_status = process_status_ongoing(
+            archiver=self.archiver, status=status,
+            timestamp=timestamp
+        )
+
+        self.assertEqual(new_status[Archiver.VALUE], STEALTHY)
+
+    def test_flapping(self):
+        """Test flapping status.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.VALUE: ONGOING,
+            Archiver.TIMESTAMP: timestamp,
+            Archiver.FLAPPING_FREQ: self.archiver.flapping_freq,
+            Archiver.PENDING_TIME: timestamp - self.archiver.stealthy_time - 1
+        }
+        new_status = process_status_ongoing(
+            archiver=self.archiver, status=status,
+            timestamp=timestamp
+        )
+
+        self.assertEqual(new_status[Archiver.VALUE], FLAPPING)
+        self.assertEqual(
+            new_status[Archiver.FLAPPING_FREQ], self.archiver.flapping_freq + 1
+        )
+
+    def test_incflapping(self):
+        """Test increment counter of flapping status.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.VALUE: ONGOING,
+            Archiver.TIMESTAMP: timestamp,
+            Archiver.FLAPPING_FREQ: self.archiver.flapping_freq - 2,
+            Archiver.PENDING_TIME: timestamp - self.archiver.stealthy_time - 1
+        }
+        new_status = process_status_ongoing(
+            archiver=self.archiver, status=status,
+            timestamp=timestamp
+        )
+
+        self.assertEqual(new_status[Archiver.VALUE], OFF)
+        self.assertEqual(
+            new_status[Archiver.FLAPPING_FREQ], self.archiver.flapping_freq - 1
+        )
+
+    def test_noflapping_overtime(self):
+        """Test to leave flapping cause expired flapping time.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.VALUE: ONGOING,
+            Archiver.TIMESTAMP: timestamp,
+            Archiver.FLAPPING_FREQ: self.archiver.flapping_freq,
+            Archiver.PENDING_TIME: timestamp - self.archiver.flapping_time - 1
+        }
+        new_status = process_status_ongoing(
+            archiver=self.archiver, status=status,
+            timestamp=timestamp
+        )
+
+        self.assertEqual(new_status[Archiver.VALUE], OFF)
+        self.assertEqual(
+            new_status[Archiver.FLAPPING_FREQ], self.archiver.flapping_freq
+        )
+
+    def test_noflapping_ongoing(self):
+        """Test to leave flapping in an ongoing status.
+        """
+
+        timestamp = time()
+        status = {
+            Archiver.VALUE: ONGOING,
+            Archiver.TIMESTAMP: timestamp,
+            Archiver.FLAPPING_FREQ: self.archiver.flapping_freq,
+            Archiver.PENDING_TIME: timestamp - self.archiver.flapping_time - 1
+        }
+        new_status = process_status_ongoing(
+            state=1,
+            archiver=self.archiver, status=status,
+            timestamp=timestamp
+        )
+
+        self.assertEqual(new_status[Archiver.VALUE], ONGOING)
+
+
+class ProcessStatusStealthyTestCase(TestProcessStatus):
     pass
 
 

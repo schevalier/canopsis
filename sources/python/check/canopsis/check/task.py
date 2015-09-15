@@ -153,6 +153,7 @@ def update_status(state, status, timestamp, archiver):
     # update state/last_state_change
     if Archiver.STATE not in result:
         result[Archiver.STATE] = state
+        result[Archiver.LAST_STATE_CHANGE] = timestamp
 
     elif state != result[Archiver.STATE]:
         result[Archiver.LAST_STATE_CHANGE] = timestamp
@@ -176,6 +177,10 @@ def process_status_off(
         result = OFF
 
     else:
+        # init result
+        if result is None:
+            result = {}
+
         result[Archiver.VALUE] = ONGOING
         result[Archiver.STATE] = state
 
@@ -200,28 +205,25 @@ def process_status_ongoing(
 
     if state == 0:  # do something only if state is ok
 
-        # if flapping is not setted, do it
-        if Archiver.FLAPPING_FREQ not in status:
-            status[Archiver.FLAPPING_FREQ] = 1
-
-        # set pending time
-        if Archiver.PENDING_TIME not in status:
-            status[Archiver.PENDING_TIME] = timestamp
-
         # get pending duration
-        pending_duration = timestamp - status[Archiver.PENDING_TIME]
+        pending_duration = timestamp - status.get(
+            Archiver.PENDING_TIME, timestamp
+        )
 
-        if pending_duration < archiver.stealthy_time:  # is stealthy ?
+        if pending_duration <= archiver.stealthy_time:  # is stealthy ?
             result[Archiver.VALUE] = STEALTHY
 
-        elif pending_duration < archiver.flapping_time:  # is flapping ?
-            flapping_freq = status.get(Archiver.FLAPPING_FREQ, 1)
+        elif pending_duration <= archiver.flapping_time:  # is flapping ?
+            flapping_freq = status.get(Archiver.FLAPPING_FREQ, 0)
 
-            if flapping_freq >= archiver.flapping_freq:
+            # increment flapping counter
+            flapping_freq += 1
+            status[Archiver.FLAPPING_FREQ] = flapping_freq
+
+            if flapping_freq >= archiver.flapping_freq:  # is flapping ?
                 result[Archiver.VALUE] = FLAPPING
 
-            else:  # increment flapping frequency and change to a stable status
-                status[Archiver.FLAPPING_FREQ] = flapping_freq + 1
+            else:  # change to a stable status
                 status[Archiver.VALUE] = OFF
 
         else:  # come back to a stable status
@@ -252,6 +254,8 @@ def process_status_stealthy(
             pending_duration > archiver.stealthy_time or
             state == status[Archiver.STATE]
     ):  # is not in stealthy ?
+
+        del result[Archiver.PENDING_TIME]
         result[Archiver.VALUE] = OFF if state == 0 else ONGOING
 
     elif pending_duration < archiver.flapping_time:  # is flapping ?
@@ -267,7 +271,9 @@ def process_status_stealthy(
 
 
 @register_task('archiver.flapping')
-def process_status_flapping(state=0, status=None, archiver=None, **kwargs):
+def process_status_flapping(
+        status, timestamp=None, state=0, archiver=None, **kwargs
+):
     """Process event where old status is flapping.
     """
 
@@ -276,13 +282,19 @@ def process_status_flapping(state=0, status=None, archiver=None, **kwargs):
     if archiver is None:
         archiver = singleton_per_scope(Archiver)
 
+    if timestamp is None:
+        timestamp = time()
+
     pending_time = status[Archiver.PENDING_TIME]
     old_state = status[Archiver.STATE]
 
+    pending_duration = timestamp - pending_time
+
     if (
-            pending_time > archiver.flapping_time or
+            pending_duration > archiver.flapping_time or
             state == old_state
     ):
+        del status[Archiver.PENDING_TIME]
         status[Archiver.VALUE] = OFF if state == 0 else ONGOING
 
     return result
