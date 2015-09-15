@@ -118,19 +118,19 @@ class GetEnding(PBehaviorManagerTest):
             behaviors=self.behaviors
         )
 
-    def test_alltime(self):
+    def _test_alltime(self):
         """Test getending method where time is everytime.
         """
 
         # check all time
-        self.manager.put(vevents=[self.document])
+        self.manager.put(vevents=self.document)
         ending = self.manager.getending(source=self.source)
         self.assertEqual(
             ending,
             {self.behaviors[0]: self.document[PBehaviorManager.DTEND]}
         )
 
-    def test_alltimes(self):
+    def _test_alltimes(self):
         """Test getending method where several times exist in everytime.
         """
 
@@ -164,31 +164,32 @@ class GetEnding(PBehaviorManagerTest):
         """
 
         self.document[PBehaviorManager.DTEND] = time()
-        self.manager.put(vevents=[self.document])
+        self.manager.put(vevents=self.document)
         ending = self.manager.getending(source=self.source)
         self.assertFalse(ending)
 
-    def test_included_time(self):
+    def _test_included_time(self):
         """Test to get ending date when dtstart and dtend are given.
         """
 
         self.document[PBehaviorManager.DTSTART] = time()
         self.document[PBehaviorManager.DTEND] = time() + 10000
 
-        self.manager.put(vevents=[self.document])
+        self.manager.put(vevents=self.document)
         ending = self.manager.getending(source=self.source)
         self.assertEqual(
             ending, {self.behaviors[0]: self.document[PBehaviorManager.DTEND]}
         )
 
-    def test_rrule(self):
+    def _test_rrule(self):
         """Test to get ending date when an rrule.
         """
 
-        self.document[PBehaviorManager.DTSTART] = time()
-        self.document[PBehaviorManager.DTEND] = time() + 10000
+        now = time()
+        self.document[PBehaviorManager.DTSTART] = now
+        self.document[PBehaviorManager.DTEND] = now + 10000
         self.document[PBehaviorManager.RRULE] = "FREQ=DAILY"
-        self.manager.put(vevents=[self.document])
+        self.manager.put(vevents=self.document)
         ending = self.manager.getending(source=self.source)
         self.assertEqual(
             ending, {self.behaviors[0]: self.document[PBehaviorManager.DTEND]}

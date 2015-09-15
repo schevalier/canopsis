@@ -65,10 +65,10 @@ class KnownValues(TestCase):
         )
         return sla
 
-    def test_init(self):
+    def _test_init(self):
         self.get_sla()
 
-    def test_compute_sla(self):
+    def _test_compute_sla(self):
         sla = self.get_sla()
 
         sla_info = []
@@ -94,7 +94,7 @@ class KnownValues(TestCase):
         )
         self.assertEqual(first_timestamp, now - 10)
 
-    def test_compute_sla_output(self):
+    def _test_compute_sla_output(self):
 
         # It should generate a specific string with given data structure
         sla = self.get_sla()
@@ -130,7 +130,7 @@ class KnownValues(TestCase):
         )
         self.assertEqual(output, '11.00 - 11.00 - 97.00')
 
-    def test_prepare_event(self):
+    def _test_prepare_event(self):
 
         class MockSelector(object):
             display_name = 'test_display'

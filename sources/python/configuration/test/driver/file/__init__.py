@@ -24,7 +24,8 @@ from logging import getLogger
 from unittest import main, TestCase
 
 from canopsis.configuration.parameters import (
-    Configuration, Category, Parameter)
+    Configuration, Category, Parameter
+)
 from canopsis.configuration.driver.file import FileConfigurationDriver
 
 from pickle import loads, dump
@@ -40,28 +41,29 @@ class TestConfigurationDriver(FileConfigurationDriver):
     __register__ = True
 
     def _has_category(
-        self, conf_resource, category, logger, *args, **kwargs
+            self, conf_resource, category, logger, *args, **kwargs
     ):
 
         return category in conf_resource
 
     def _has_parameter(
-        self, conf_resource, category, param, logger,
-        *args, **kwargs
+            self, conf_resource, category, param, logger, *args, **kwargs
     ):
 
         return param.name in conf_resource[category.name]
 
     def _get_categories(self, conf_resource, logger, *args, **kwargs):
+
         return conf_resource.keys()
 
     def _get_parameters(
-        self, conf_resource, category, logger, *args, **kwargs
+            self, conf_resource, category, logger, *args, **kwargs
     ):
+
         return conf_resource[category.name].keys()
 
     def _get_conf_resource(
-        self, logger, conf_path=None, *args, **kwargs
+            self, logger, conf_path=None, *args, **kwargs
     ):
 
         result = dict()
@@ -79,26 +81,25 @@ class TestConfigurationDriver(FileConfigurationDriver):
         return result
 
     def _get_value(
-        self, conf_resource, category, param, logger,
-        *args, **kwargs
+            self, conf_resource, category, param, logger, *args, **kwargs
     ):
 
         return conf_resource[category.name][param.name]
 
     def _set_category(
-        self, conf_resource, category, logger, *args, **kwargs
+            self, conf_resource, category, logger, *args, **kwargs
     ):
 
         conf_resource.setdefault(category.name, dict())
 
     def _set_parameter(
-        self, conf_resource, category, param, logger,
-        *args, **kwargs
+            self, conf_resource, category, param, logger, *args, **kwargs
     ):
+
         conf_resource[category.name][param.name] = param.value
 
     def _update_conf_resource(
-        self, conf_resource, conf_path, *args, **kwargs
+            self, conf_resource, conf_path, *args, **kwargs
     ):
 
         with open(conf_path, 'w') as handle:
@@ -118,18 +119,23 @@ class ConfigurationDriverTest(TestCase):
     ERROR_PARAMETER = 'foo4'
 
     def setUp(self):
+
         self.logger = getLogger()
 
         self.manager = self._get_configuration_manager()
 
         self.conf = Configuration(
-            Category('A',
+            Category(
+                'A',
                 Parameter('a', value=0, parser=int),  # a is 0
-                Parameter('b', value=True, parser=Parameter.bool)),
-                # b is overriden
-            Category('B',
+                Parameter('b', value=True, parser=Parameter.bool)  # overriden
+            ),
+            Category(
+                'B',
                 Parameter('b', value=1, parser=int),  # b is 1
-                Parameter('c', value='er', parser=int)))  # error
+                Parameter('c', value='er', parser=int)  # error
+            )
+        )
 
         self.conf_path = self.get_configuration_file()
 
@@ -138,6 +144,7 @@ class ConfigurationDriverTest(TestCase):
         return '/tmp/canopsis.configuration.conf'
 
     def _remove(self):
+
         try:
             remove(self.conf_path)
         except OSError:
@@ -157,7 +164,8 @@ class ConfigurationDriverTest(TestCase):
 
         conf = self.manager.get_configuration(
             conf_path=self.conf_path,
-            logger=self.logger)
+            logger=self.logger
+        )
 
         self.assertEqual(conf, None)
 
@@ -166,7 +174,8 @@ class ConfigurationDriverTest(TestCase):
 
         conf = self.manager.get_configuration(
             conf_path=self.conf_path,
-            logger=self.logger)
+            logger=self.logger
+        )
 
         self.assertTrue(conf is None)
 
@@ -174,12 +183,14 @@ class ConfigurationDriverTest(TestCase):
         self.manager.set_configuration(
             conf_path=self.conf_path,
             conf=self.conf,
-            logger=self.logger)
+            logger=self.logger
+        )
 
         conf = self.manager.get_configuration(
             conf_path=self.conf_path,
             conf=self.conf,
-            logger=self.logger)
+            logger=self.logger
+        )
 
         self.assertFalse(conf is None)
         self.assertEqual(len(conf), 2)
@@ -201,7 +212,8 @@ class ConfigurationDriverTest(TestCase):
         conf = self.manager.get_configuration(
             conf_path=self.conf_path,
             conf=conf,
-            logger=self.logger)
+            logger=self.logger
+        )
 
         unified_conf = conf.unify()
 
@@ -214,9 +226,8 @@ class ConfigurationDriverTest(TestCase):
         self.assertTrue('c' in errors and 'c' not in parameters)
 
     def _get_configuration_manager(self):
-        """
-        Only one method to override by sub tests
-        """
+        """Only one method to override by sub tests"""
+
         return TestConfigurationDriver()
 
     def _get_manager_path(self):
