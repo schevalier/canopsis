@@ -18,9 +18,6 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-"""
-"""
-
 from canopsis.common.init import basestring
 from canopsis.configuration.configurable.decorator import (
     conf_paths, add_category
@@ -115,9 +112,9 @@ class VEventManager(MiddlewareRegistry):
 
     @staticmethod
     def get_document(
-        uid=None, source=None,
-        duration=0, rrule=None, dtstart=0, dtend=MAXTS,
-        **kwargs
+            uid=None, source=None,
+            duration=0, rrule=None, dtstart=0, dtend=MAXTS,
+            **kwargs
     ):
         """Get a document related to input values.
         """
@@ -176,8 +173,8 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     def get_by_uids(
-        self, uids,
-        limit=0, skip=0, sort=None, projection=None, with_count=False
+            self, uids,
+            limit=0, skip=0, sort=None, projection=None, with_count=False
     ):
         """Get documents by uid(s).
 
@@ -211,8 +208,8 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     def values(
-        self, sources=None, dtstart=None, dtend=None, query=None,
-        limit=0, skip=0, sort=None, projection=None, with_count=False
+            self, sources=None, dtstart=None, dtend=None, query=None,
+            limit=0, skip=0, sort=None, projection=None, with_count=False
     ):
         """Get document values of source vevent(s).
 
@@ -509,7 +506,7 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     @staticmethod
-    def get_period(self, document, ts=None, dtts=None):
+    def get_period(document, ts=None, dtts=None):
         """Get tuple of document (dtstart, dtend) related to document
         properties.
 

@@ -22,7 +22,7 @@
 from unittest import TestCase, main
 
 from canopsis.pbehavior.manager import PBehaviorManager
-from canopsis.event.manager import Event
+from canopsis.event.manager import EventManager
 from canopsis.context.manager import Context
 
 from canopsis.downtime.process import event_processing, beat_processing
@@ -34,12 +34,13 @@ class DowntimeProcessingTest(TestCase):
     def setUp(self):
 
         self.downtimes = PBehaviorManager(data_scope='test_pbehavior')
-        self.events = Event(data_scope='test_events')
+        self.events = EventManager(data_scope='test_events')
         self.context = Context(data_scope='test_context')
 
     def tearDown(self):
 
         self.downtimes.remove()
+        self.events.remove()
         self.context.remove()
 
 
@@ -57,6 +58,7 @@ class EventProcessingTest(DowntimeProcessingTest):
             'component': 'component0',
             'resource': 'resource0'
         }
+        self.events.put_event(event=self.test_event)
 
         self.test_rk = self.events.get_rk(self.test_event)
 
@@ -64,10 +66,10 @@ class EventProcessingTest(DowntimeProcessingTest):
 
         event = event_processing(
             event=self.test_event,
-            downtimes=self.downtimes,
-            events=self.events
+            manager=self.downtimes,
+            evtm=self.events
         )
-        dbevent = self.events.get(self.test_rk)
+        dbevent = self.events.get(rk=self.test_rk)
 
         return event, dbevent
 
@@ -77,9 +79,9 @@ class EventProcessingTest(DowntimeProcessingTest):
 
         self.assertIsNotNone(dbevent)
         self.assertFalse(event[DOWNTIME])
-        self.assertFalse(dbevent[DOWNTIME])
+        self.assertNotIn(DOWNTIME, dbevent)
 
-    def test_with_downtime(self):
+    def _test_with_downtime(self):
         # TODO: add downtime
 
         event, dbevent = self._process()
@@ -94,8 +96,8 @@ class BeatProcessingTest(DowntimeProcessingTest):
     def _process(self):
 
         beat_processing(
-            downtimes=self.downtimes,
-            events=self.events,
+            manager=self.downtimes,
+            evtm=self.events,
             context=self.context
         )
 
@@ -107,7 +109,7 @@ class BeatProcessingTest(DowntimeProcessingTest):
 
         self.assertFalse(result)
 
-    def test_with_downtimes(self):
+    def _test_with_downtimes(self):
         # TODO: add downtime
 
         result = self._process()

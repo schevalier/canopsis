@@ -10,7 +10,7 @@ CATEGORY = 'EVENT'
 
 @conf_paths(CONF_PATH)
 @add_category(CATEGORY)
-class Event(MiddlewareRegistry):
+class EventManager(MiddlewareRegistry):
 
     EVENT_STORAGE = 'event_storage'
     """
@@ -19,7 +19,7 @@ class Event(MiddlewareRegistry):
 
     def __init__(self, *args, **kwargs):
 
-        super(Event, self).__init__(*args, **kwargs)
+        super(EventManager, self).__init__(*args, **kwargs)
 
     @staticmethod
     def get_rk(event):
@@ -36,10 +36,9 @@ class Event(MiddlewareRegistry):
 
         return rk
 
-    def get(self, rk, default=None):
-        result = self.find(query={'rk': rk}, limit=1)
+    def get(self, rk):
 
-        return result[0] if len(result) else default
+        return self[EventManager.EVENT_STORAGE].get_elements(ids=rk)
 
     def find(
             self,
@@ -48,7 +47,7 @@ class Event(MiddlewareRegistry):
             ids=None,
             sort=None,
             with_count=False,
-            query={},
+            query=None,
             projection=None
     ):
 
@@ -61,7 +60,7 @@ class Event(MiddlewareRegistry):
         :param with_count: compute selection count when True
         """
 
-        result = self[Event.EVENT_STORAGE].get_elements(
+        result = self[EventManager.EVENT_STORAGE].get_elements(
             ids=ids,
             skip=skip,
             sort=sort,
@@ -71,3 +70,34 @@ class Event(MiddlewareRegistry):
             projection=projection
         )
         return result
+
+    def put_event(self, event, rk=None):
+        """Put input event in database.
+
+        :param dict event: event to put/update.
+        :param str rk: event rk to use. Calculated by default.
+        """
+
+        if rk is None:
+            rk = self.get_rk(event)
+
+        self[EventManager.EVENT_STORAGE].put_element(element=event, _id=rk)
+
+    def update_event(self, content, event):
+        """Update input event with content.
+
+        :param dict content: content to update in the event.
+        :param dict event: event query.
+        """
+
+        self[EventManager.EVENT_STORAGE].update_elements(
+            data=content, query=event, multi=False
+        )
+
+    def remove(self, _filter=None):
+        """Remove events corresponding to input filter.
+
+        :param dict filter: deletion filter. Remove all events if None.
+        """
+
+        self[EventManager.EVENT_STORAGE].remove_elements(_filter=_filter)

@@ -118,11 +118,7 @@ class PBehaviorManager(VEventManager):
             query = PBehaviorManager.get_query(behaviors=_behaviors)
             _behaviors = set(_behaviors)
         # get documents
-        documents = self.values(
-            sources=[source],
-            dtstart=ts,
-            query=query
-        )
+        documents = self.values(sources=[source], dtstart=ts, query=query)
         # prepare CONSTS
         BEHAVIORS = PBehaviorManager.BEHAVIORS
         # iterate on documents in order to update result with end ts

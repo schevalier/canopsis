@@ -21,7 +21,7 @@
 from canopsis.engines.core import TaskHandler
 from canopsis.linklist.manager import Linklist
 from canopsis.context.manager import Context
-from canopsis.event.manager import Event
+from canopsis.event.manager import EventManager
 from canopsis.entitylink.manager import Entitylink
 from json import loads
 
@@ -43,7 +43,7 @@ class engine(TaskHandler):
 
         self.link_list_manager = Linklist()
         self.context = Context()
-        self.event = Event()
+        self.event = EventManager()
         self.entity_link_manager = Entitylink()
 
         """
