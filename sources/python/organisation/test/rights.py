@@ -100,85 +100,57 @@ class RightsTest(TestCase):
         self.rights.create_user('jharris', 'role_test1bis')
 
         # Basic check
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 1), True)
+        self.assertTrue(self.rights.check_rights('jharris', '1237', 1))
 
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), False)
+        self.assertFalse(self.rights.check_rights('jharris', '1237', 12))
 
         # Add permissions to the rights
         self.rights.add_right('group_test1', 'group', '1237', 12)
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), True)
+        self.assertTrue(self.rights.check_rights('jharris', '1237', 12))
 
         # Test right deletion
         self.rights.remove_right('group_test1', 'group', '1237', 8)
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), False)
+        self.assertFalse(self.rights.check_rights('jharris', '1237', 12))
 
         # Add it back
         self.rights.add_right('group_test1', 'group', '1237', 12)
 
         # Test remove_entity
         self.rights.remove_group_profile('profile_test1', 'group_test1')
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), False)
+        self.assertFalse(self.rights.check_rights('jharris', '1237', 12))
 
         # Add it back
         self.rights.add_group_profile('profile_test1', 'group_test1')
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), True)
+        self.assertTrue(self.rights.check_rights('jharris', '1237', 12))
 
         # Test removing the profile
         self.rights.remove_profile('role_test1bis', None, 'profile_test1')
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), False)
+        self.assertFalse(self.rights.check_rights('jharris', '1237', 12))
 
         # Add it back
         self.rights.add_profile('role_test1bis', None, 'profile_test1')
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), True)
+        self.assertTrue(self.rights.check_rights('jharris', '1237', 12))
 
         # Remove the profile to add it to the role
         self.rights.remove_profile('role_test1bis', None, 'profile_test1')
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), False)
+        self.assertFalse(self.rights.check_rights('jharris', '1237', 12))
 
         # Add the group to the role
         self.rights.add_group_role('role_test1bis', 'group_test1')
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), True)
+        self.assertTrue(self.rights.check_rights('jharris', '1237', 12))
 
         # Remove it
         self.rights.remove_group_role('role_test1bis', 'group_test1')
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), False)
+        self.assertFalse(self.rights.check_rights('jharris', '1237', 12))
 
         # Add the specific right to the user
         self.rights.add_right('jharris', 'user', '1237', 12)
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), True)
+        self.assertTrue(self.rights.check_rights('jharris', '1237', 12))
 
         # Change the checksum
         self.rights.remove_right('jharris', 'user', '1237', 4)
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 12), False)
-        self.assertEqual(
-            self.rights.check_rights(
-                'jharris', '1237', 8), True)
+        self.assertFalse(self.rights.check_rights('jharris', '1237', 12))
+        self.assertTrue(self.rights.check_rights('jharris', '1237', 8))
 
         # Add a right on the same action to different fields
         # and check that it is summed correctly
@@ -193,20 +165,26 @@ class RightsTest(TestCase):
         self.rights.add_group_profile('role_test1bis', 'group_test1')
         self.assertEqual(
             self.rights.get_user_rights('jharris')['1237']['checksum'],
-            15)
+            8 + 4 + 2
+        )
 
         # Change entity name
-        self.assertTrue('group_test2' in self.rights.get_user('jharris')['group'])
+        self.assertIn(
+            'group_test2', self.rights.get_user('jharris')['group']
+        )
+        self.assertEqual(
+            'group_test2', self.rights.get_group('group_test2')['crecord_name']
+        )
         self.assertTrue(
-            'group_test2' == self.rights.get_group('group_test2')['crecord_name']
+            self.rights.update_entity_name(
+                'group_test2', 'group', 'name_changed'
             )
-        self.assertTrue(
-            self.rights.update_entity_name('group_test2', 'group', 'name_changed')
-            )
-        self.assertTrue('group_test2' in self.rights.get_user('jharris')['group'])
-        self.assertTrue(
-            'name_changed' == self.rights.get_group('group_test2')['crecord_name']
-            )
+        )
+        self.assertIn('group_test2', self.rights.get_user('jharris')['group'])
+        self.assertEqual(
+            'name_changed',
+            self.rights.get_group('group_test2')['crecord_name']
+        )
 
 if __name__ == '__main__':
     main()
