@@ -180,7 +180,24 @@ class ProcessSupervisionStatusTestCase(TestCase):
 
 
 class ProcessStatusCanceledTestCase(TestCase):
-    pass
+    """Test the process_status_canceled function.
+    """
+
+    def test_off(self):
+        """Test with the off status.
+        """
+
+        status = process_status_canceled(state=0)
+
+        self.assertEqual(status, OFF)
+
+    def test_ongoing(self):
+        """Test with an ongoing status.
+        """
+
+        status = process_status_canceled(state=1)
+
+        self.assertEqual(status, ONGOING)
 
 
 class ProcessStatusFlappingTestCase(TestCase):
@@ -188,7 +205,8 @@ class ProcessStatusFlappingTestCase(TestCase):
 
 
 class ProcessStatusOffTestCase(TestCase):
-    pass
+    """Test the process_status_off function.
+    """
 
 
 class ProcessStatusOngoingTestCase(TestCase):
