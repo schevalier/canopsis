@@ -10,9 +10,9 @@ deployment.
 References
 ==========
 
- - :ref:`FR__Architecture <FR__Architecture>`
- - :ref:`FR__Engine <FR__Engine>`
- - :ref:`TR__Package <TR__Package>`
+ - :ref:`FR::Architecture <FR__Architecture>`
+ - :ref:`FR::Engine <FR__Engine>`
+ - :ref:`TR::Package <TR__Package>`
 
 Updates
 =======
@@ -20,9 +20,10 @@ Updates
 .. csv-table::
    :header: "Author(s)", "Date", "Version", "Summary", "Accepted by"
 
-   "David Delassus", "2015/09/01", "0.3", "Update references", ""
-   "David Delassus", "2015/09/01", "0.2", "Rename document", ""
-   "David Delassus", "2015/08/02", "0.1", "Document creation", ""
+   "David Delassus", "02/09/2015", "0.1", "Document creation", ""
+   "David Delassus", "01/09/2015", "0.2", "Rename document", ""
+   "David Delassus", "01/09/2015", "0.3", "Update references", ""
+   "David Delassus", "15/09/2015", "0.4", "Completed documentation", ""
 
 Contents
 ========
@@ -91,6 +92,12 @@ The entry point of the whole process is the ``build-install.sh`` script :
 
 .. figure:: ../_static/images/architecture/buildinstall.png
 
+Canopsis environment
+~~~~~~~~~~~~~~~~~~~~
+
+Canopsis environment is deployed by the package ``canohome``, initializing Bash
+configuration, and SSH keys.
+
 Running services
 ~~~~~~~~~~~~~~~~
 
@@ -133,6 +140,8 @@ deployment.
 
 All other data sources MUST be distributed with their own deployment process.
 
+The ``collectd-libs`` package brings CollectD configuration and plugins in ``~canopsis/opt/collectd-libs``.
+
 Deploying messaging queue system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -145,6 +154,8 @@ launcher ``rabbitmq-server-wrapper``, which writes nothing interesting for debug
 
 For the client part, the file ``etc/amqp.conf`` is used to configure the old messaging
 implementation.
+
+Binaries are installed by Canopsis packages ``erlang``, ``librabbitmq``, and ``rabbitmq-server``, and configuration is installed by ``rabbitmq-server-conf``.
 
 Deploying database
 ~~~~~~~~~~~~~~~~~~
@@ -160,6 +171,9 @@ MongoDB tries to fit the working set into RAM. If the whole data occupies 10GB a
 only 1GB of data is accessed regularly and its index is also sized at 1GB, then
 the working set is 2GB and will be the RAM requirement for MongoDB.
 
+Binaries are installed by Canopsis package ``mongodb``, and configuration is installed
+by ``mongodb-conf``.
+
 Deploying data exposure
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -170,3 +184,14 @@ The webserver is configured in two files :
 
 In order to change the listened port, you'll have to modify the call to gunicorn.
 In order to change available webservices, you'll have to modify the general configuration.
+
+Logs are written to :
+
+ * ``~canopsis/var/log/webserver-access.log`` for each HTTP request received by gunicorn
+ * ``~canopsis/var/log/webserver.log`` for each processed request
+
+It is installed by the following Canopsis packages :
+
+ - ``python-libs`` : for gunicorn
+ - ``canolibs`` : for webserver (and its configuration)
+ - ``webcore`` & ``webcore-libs`` : for user interface
