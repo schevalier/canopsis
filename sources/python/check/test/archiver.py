@@ -20,9 +20,13 @@
 
 from unittest import TestCase, main
 
+from random import randint
+
+from canopsis.common.utils import path
 from canopsis.check.archiver import (
-    Archiver, OFF, ONGOING, STEALTHY, FLAPPING, CANCELED
+    Archiver, OFF, ONGOING, STEALTHY, FLAPPING, CANCELED, StatusConfiguration
 )
+
 
 ARCHIVER = None
 
@@ -72,7 +76,7 @@ class KnownValues(TestCase):
         self.archiver.check_statuses(event, devent)
         self.assertEqual(event['status'], ONGOING)
         devent = event.copy()
-        print event, '\n', devent
+
         # Set state back to Ok, event should be Stealthy
         setFields(event, state=0)
         self.archiver.check_statuses(event, devent)
@@ -100,6 +104,86 @@ class KnownValues(TestCase):
         self.archiver.check_statuses(event, devent)
         self.assertEqual(event['status'], STEALTHY)
         devent = event.copy()
+
+
+class TestStatusConfiguration(TestCase):
+    """Test the StatusConfiguration object.
+    """
+
+    def setUp(self):
+
+        self.value = randint(-100, 100)
+        self.name = '{0}'.format(self.value)
+        self.status_conf = StatusConfiguration(
+            {
+                self.name: {
+                    StatusConfiguration.CODE: self.value,
+                    StatusConfiguration.TASK: path(setFields)
+                }
+            }
+        )
+
+    def test_value(self):
+        """Test the value method.
+        """
+
+        value = self.status_conf.value(self.name)
+
+        self.assertEqual(value, self.value)
+
+    def test_unknownvalue(self):
+        """Test with an unknown name.
+        """
+
+        self.assertRaises(
+            KeyError, self.status_conf.value, TestStatusConfiguration.__name__
+        )
+
+    def test_name(self):
+        """Test with a known name.
+        """
+
+        name = self.status_conf.name(self.value)
+
+        self.assertEqual(name, self.name)
+
+    def test_unknownname(self):
+        """Test with an unknown value.
+        """
+
+        self.assertRaises(
+            KeyError, self.status_conf.name, self.value + 1
+        )
+
+    def test_task_by_name(self):
+        """Test wit a known task by name.
+        """
+
+        task = self.status_conf.task(self.name)
+
+        self.assertEqual(task, setFields)
+
+    def test_task_by_value(self):
+        """Test wit a known task by value.
+        """
+
+        task = self.status_conf.task(self.value)
+
+        self.assertEqual(task, setFields)
+
+    def test_unknowntask_by_name(self):
+        """Test wit an unknown task by name.
+        """
+
+        self.assertRaises(
+            KeyError, self.status_conf.task, TestStatusConfiguration.__name__
+        )
+
+    def test_unknowntask_by_value(self):
+        """Test wit an unknown task by value.
+        """
+
+        self.assertRaises(KeyError, self.status_conf.task, self.value + 1)
 
 
 if __name__ == "__main__":

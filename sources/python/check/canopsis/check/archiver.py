@@ -66,6 +66,16 @@ class StatusConfiguration(dict):
             params = self[name]
             self.status_name_by_code[params[self.CODE]] = name
 
+    def value(self, name):
+        """Get status value related to input name.
+
+        :param str name: status name.
+        :return: status code corresponding to input name.
+        :rtype: int
+        """
+
+        return self[name][StatusConfiguration.CODE]
+
     def name(self, code):
         """Get status name from input status code.
 

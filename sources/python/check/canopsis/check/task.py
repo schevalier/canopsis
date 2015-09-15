@@ -121,26 +121,43 @@ def process_supervision_status(event, archiver=None, context=None, **kwargs):
             state=state, timestamp=timestamp, status=status, archiver=archiver
         )
         # update status content
-        update_status(state=state, status=new_status, timestamp=timestamp)
+        update_status(
+            state=state, status=new_status, timestamp=timestamp,
+            archiver=archiver
+        )
         # and save the status
         archiver.set_status(entityid=entityid, status=new_status)
 
 
-def update_status(state, status, timestamp):
+def update_status(state, status, timestamp, archiver):
     """Update status content before storing it.
     """
 
+    result = status
+
     # ensure status is a dictionary
     if isinstance(status, basestring):
-        status = {Archiver.VALUE: status}
-    # update timestamp
-    status[timestamp] = timestamp
-    # update state/last_state_change
-    if Archiver.STATE not in status:
-        status[Archiver.STATE] = state
+        result = {Archiver.VALUE: archiver.status_conf.value(status)}
+    elif isinstance(status, int):
+        result = {Archiver.VALUE: status}
 
-    elif state != status[Archiver.STATE]:
-        status[Archiver.LAST_STATE_CHANGE] = timestamp
+    if (not isinstance(result, dict)) or Archiver.VALUE not in result:
+        raise Archiver.Error(
+            'Wrong status type {0}. int, str or dict expected'.
+            format(result)
+        )
+
+    # update timestamp
+    result[Archiver.TIMESTAMP] = timestamp
+
+    # update state/last_state_change
+    if Archiver.STATE not in result:
+        result[Archiver.STATE] = state
+
+    elif state != result[Archiver.STATE]:
+        result[Archiver.LAST_STATE_CHANGE] = timestamp
+
+    return result
 
 
 @register_task('archiver.off')
