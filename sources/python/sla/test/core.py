@@ -54,14 +54,14 @@ class KnownValues(TestCase):
         display_name='mysla'
     ):
         sla = Sla(
-            MockStorage(),
-            rk,
-            template,
-            timewindow,
-            warning,
-            critical,
-            alert_level,
-            display_name,
+            storage=MockStorage(),
+            rk=rk,
+            template=template,
+            timewindow_dict=timewindow,
+            sla_warning=warning,
+            sla_critical=critical,
+            alert_level=alert_level,
+            display_name=display_name,
         )
         return sla
 

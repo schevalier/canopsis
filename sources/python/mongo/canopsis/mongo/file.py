@@ -33,34 +33,34 @@ class MongoFileStream(FileStream):
 
     def __init__(self, gridout):
 
-        self.gridout = gridout
+        self._gridout = gridout
 
     def close(self):
-        self.gridout.close()
+        self._gridout.close()
 
     def write(self, data):
-        self.gridout.write(data=data)
+        self._gridout.write(data=data)
 
     def read(self, size=-1):
 
-        return self.gridout.read(size=size)
+        return self._gridout.read(size=size)
 
     def seek(self, pos, from_beginning=False):
 
-        self.gridout.seek(pos=pos, whence=from_beginning)
+        self._gridout.seek(pos=pos, whence=from_beginning)
 
     def pos(self):
 
-        return self.gridout.tell()
+        return self._gridout.tell()
 
     def next(self):
-        return MongoFileStream(self.gridout.next())
+        return MongoFileStream(self._gridout.next())
 
     def __eq__(self, other):
 
         return (
             isinstance(other, self.__class__)
-            and self.gridout.filename == other.gridout.filename
+            and self._gridout.filename == other._gridout.filename
         )
 
 

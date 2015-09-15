@@ -21,9 +21,10 @@
 
 from canopsis.common.setup import setup
 
-install_requires = ['canopsis.storage']
+install_requires = ['canopsis.timeserie', 'canopsis.event', 'canopsis.common']
 
 setup(
     description='SLA for Canopsis',
     install_requires=install_requires,
-    keywords='sla')
+    keywords='sla'
+)
