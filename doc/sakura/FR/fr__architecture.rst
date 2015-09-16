@@ -23,9 +23,9 @@ Updates
 .. csv-table::
    :header: "Author(s)", "Date", "Version", "Summary", "Accepted by"
 
-   "David Delassus", "2015/09/01", "0.3", "Update references", ""
-   "David Delassus", "2015/09/01", "0.2", "Rename document", ""
-   "David Delassus", "2015/09/01", "0.1", "Document creation", ""
+   "David Delassus", "2015/09/01", "0.3", "Update references", "Jonathan Labéjof"
+   "David Delassus", "2015/09/01", "0.2", "Rename document", "Jonathan Labéjof"
+   "David Delassus", "2015/09/01", "0.1", "Document creation", "Jonathan Labéjof"
 
 Contents
 ========
@@ -37,7 +37,7 @@ Because Canopsis is built on top of several technologies, it has specific requir
 
 To know those requirements we have to know its needs :
 
- - Canopsis sources will gather informations to send them as message to Canopsis
+ - Canopsis sources will gather information to send them as message to Canopsis
  - it will need a messaging queue system in order to transport messages
  - in order to store incoming data, it will need a database platform
  - to expose data, it will need a web server to process requests
