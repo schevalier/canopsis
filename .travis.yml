@@ -10,7 +10,7 @@ install:
 - sudo ./build-install.sh -l
 - sudo su - canopsis -c "hypcontrol start"
 script:
-- sudo su - canopsis -c "unittest.sh"
+- sudo su - canopsis -c "unittest.sh travis"
 notifications:
   slack:
     secure: SCEPeSJFfN5Q5duWdrNeOXmYYxtqNgxnwLIo37rJNy+U1nUuPQn2FuvV5g1xZmRRuISRx/zCjuZrftk99G7SaVBpzLRnnlPa1OFr+QSjS2jDSxoOGZm4pj3dXWXwEIuaary6J+53MuIsX9k7nJEA3geDcFy4VMGYgYCIBlT50H4=

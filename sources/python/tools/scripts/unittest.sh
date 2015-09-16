@@ -39,6 +39,7 @@ UNITTESTDIR="$HOME/var/lib/canopsis/unittest"
 UNITTESTS=`find $UNITTESTDIR -name "*.py" | grep -v "__init__.py"`
 UNITTESTS="$UNITTESTS"
 
+FAILED=""
 FAIL=0
 
 for UNITTEST in $UNITTESTS
@@ -61,6 +62,7 @@ do
     else
         echo "FAIL"
         FAIL=1
+        FAILED="$FAILED $TESTNAME"
     fi
 done 
 
@@ -68,5 +70,20 @@ hypcontrol stop
 
 if [ $FAIL -eq 1 ]
 then
+    if [ "$1" = "travis" ]
+    then
+        for failedtest in $FAILED
+        do
+            echo
+            echo "##################"
+            echo "# $failedtest     "
+            echo "##################"
+            echo
+
+            LOGFILE=$HOME/var/log/unittest/${TESTNAME%.py}.log
+            cat $LOGFILE
+        done
+    fi
+
     exit 1
 fi
