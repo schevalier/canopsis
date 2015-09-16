@@ -20,10 +20,11 @@ Updates
 .. csv-table::
    :header: "Author(s)", "Date", "Version", "Summary", "Accepted by"
 
-   "David Delassus", "02/09/2015", "0.1", "Document creation", ""
-   "David Delassus", "01/09/2015", "0.2", "Rename document", ""
-   "David Delassus", "01/09/2015", "0.3", "Update references", ""
-   "David Delassus", "15/09/2015", "0.4", "Completed documentation", ""
+   "David Delassus", "2015/09/15", "0.5", "Fix references", ""
+   "David Delassus", "2015/09/15", "0.4", "Completed documentation", ""
+   "David Delassus", "2015/09/01", "0.3", "Update references", ""
+   "David Delassus", "2015/09/01", "0.2", "Rename document", ""
+   "David Delassus", "2015/09/02", "0.1", "Document creation", ""
 
 Contents
 ========
@@ -81,7 +82,7 @@ Building and Installing
 Build System
 ~~~~~~~~~~~~
 
-_ package:
+.. _TR__Architecture__build:
 
 The build-system is actually a bunch of scripts-shell describing :
 
@@ -101,7 +102,7 @@ configuration, and SSH keys.
 Running services
 ~~~~~~~~~~~~~~~~
 
-.. _service:
+.. _TR__Architecture__service:
 
 In Canopsis, the software stack we rely on is distributed as a set of services :
 
