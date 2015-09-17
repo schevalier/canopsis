@@ -7,6 +7,9 @@ Canopsis Technical Architecture
 This document specifies the Canopsis Architecture, describing the toolchain and
 deployment.
 
+.. contents::
+   :depth: 2
+
 References
 ==========
 
@@ -35,17 +38,18 @@ Data source
 ~~~~~~~~~~~
 
 Data sources will be developed on our own, see the :ref:`connector <FR__Connector>`
-reference for more informations.
+reference for more information.
 
 Canopsis have two data sources deployed by default :
 
- - CollectD : gather informations about the host (CPU/MEM usage)
+ - CollectD : gather information about the host (CPU/MEM usage)
  - :ref:`engines <FR__Engine>` : gather informations about their performance
 
 Messaging Queue System
 ~~~~~~~~~~~~~~~~~~~~~~
 
 RabbitMQ is a software implementing the **A**dvanced **M**essaging **Q**ueue **P**rotocol.
+
 Thus, it is providing the following features :
 
  - exchange and types of exchange (answering the needs for consumers subscriptions)
@@ -73,7 +77,7 @@ Python, it is common sense to use the WSGI standard.
 gunicorn is a simple webserver transmitting HTTP requests to the WSGI application.
 
 The support for authentication and external authentication MUST be handled by the
-WSGI application, since gunicorn just transmit requests without touching them.
+WSGI application, since gunicorn just transmits requests without touching them.
 
 Building and Installing
 -----------------------
@@ -114,7 +118,7 @@ In Canopsis, the software stack we rely on is distributed as a set of services :
 All of those services are managed by supervisord, who's in charge of loading them,
 logging their output, restarting them if they suddenly stop, ...
 
-supervisord configuration is located at ``~canopsis/supervisord.conf`` ans launchers
+supervisord configuration is located at ``~canopsis/supervisord.conf`` and launchers
 configuration are stored in ``~canopsis/etc/supervisord.d``.
 
 There is a special case for engines, which have their configuration in ``~canopsis/etc/engines``.
