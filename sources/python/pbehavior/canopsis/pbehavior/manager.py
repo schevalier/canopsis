@@ -145,6 +145,6 @@ class PBehaviorManager(VEventManager):
 
         # update result if isunique
         if isunique:
-            result = result[behaviors] if result else None
+            result = result[0] if result else None
 
         return result

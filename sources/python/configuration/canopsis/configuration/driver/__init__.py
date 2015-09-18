@@ -20,8 +20,9 @@
 
 from canopsis.common.utils import lookup, path
 
-from canopsis.configuration.parameters import \
+from canopsis.configuration.parameters import (
     Configuration, Parameter, Category, ParamList
+)
 
 
 class MetaConfigurationDriver(type):
@@ -30,25 +31,22 @@ class MetaConfigurationDriver(type):
     set of drivers.
     """
 
-    def __init__(self, name, bases, attrs):
+    def __init__(cls, name, bases, attrs):
 
-        super(MetaConfigurationDriver, self).__init__(name, bases, attrs)
+        super(MetaConfigurationDriver, cls).__init__(name, bases, attrs)
 
         # if the class claims to be registered
-        if self.__register__:
+        if cls.__register__:
             # add it among drivers
-            ConfigurationDriver._MANAGERS[path(self)] = self
+            ConfigurationDriver._MANAGERS[path(cls)] = cls
 
 
 class ConfigurationDriver(object):
-    """
-    Base class for managing conf.
-    """
+    """Base class for managing conf."""
 
-    """
-    Apply meta class for registering automatically it among global drivers
-    if __register__ is True
-    """
+    # Apply meta class for registering automatically it among global drivers
+    # if __register__ is True
+
     __metaclass__ = MetaConfigurationDriver
 
     """
@@ -73,7 +71,8 @@ class ConfigurationDriver(object):
         """
 
         conf_resource = self._get_conf_resource(
-            conf_path=conf_path, logger=logger)
+            conf_path=conf_path, logger=logger
+        )
 
         result = conf_resource is not None
 
@@ -86,12 +85,9 @@ class ConfigurationDriver(object):
 
         raise NotImplementedError()
 
-    def get_configuration(
-        self, conf_path, logger, conf=None, override=True
-    ):
-        """
-        Parse a configuration_files with input conf and returns
-        parameters and errors by param name.
+    def get_configuration(self, conf_path, logger, conf=None, override=True):
+        """Parse a configuration_files with input conf and returns parameters
+        and errors by param name.
 
         :param str conf_path: conf file to parse and from get parameters
         :param Configuration conf: conf to fill with conf_path values and
@@ -113,13 +109,13 @@ class ConfigurationDriver(object):
                     logger=logger
                 )
 
-            except Exception as e:
+            except Exception as ex:
                 # if an error occured, log it
                 logger.error(
                     'Impossible to parse conf_path {0} with {1}: {2}'.format(
                         conf_path,
                         type(self),
-                        e
+                        ex
                     )
                 )
 
@@ -225,12 +221,12 @@ class ConfigurationDriver(object):
                 conf_path=conf_path,
                 logger=logger)
 
-        except Exception as e:
+        except Exception as ex:
             # if an error occured, stop processing
             logger.error(
                 'Impossible to parse conf_path {0}: {1}'.format(
-                    conf_path, e))
-            result = e
+                    conf_path, ex))
+            result = ex
 
         # if conf_path can not be loaded, get default config conf_resource
         if conf_resource is None:

@@ -26,8 +26,9 @@ from sys import prefix as sys_prefix
 from inspect import isclass
 
 from canopsis.common.init import basestring
-from canopsis.configuration.parameters \
-    import Configuration, Category, Parameter
+from canopsis.configuration.parameters import (
+    Configuration, Category, Parameter
+)
 
 from canopsis.configuration.driver import ConfigurationDriver
 
@@ -79,8 +80,9 @@ class Configurable(object):
     __metaclass__ = MetaConfigurable
 
     DEFAULT_DRIVERS = '{0},{1}'.format(
-        'canopsis.configuration.driver.file.json.JSONConfigurationDriver',
-        'canopsis.configuration.driver.file.ini.INIConfigurationDriver')
+        'canopsis.configuration.driver.file.jsondriver.JSONConfigurationDriver',
+        'canopsis.configuration.driver.file.inidriver.INIConfigurationDriver'
+    )
 
     INIT_CAT = 'init_cat'  #: initialization category
 
@@ -110,14 +112,14 @@ class Configurable(object):
     CRITICAL_FORMAT = ERROR_FORMAT
 
     def __init__(
-        self,
-        unified_category=None,
-        to_configure=None,
-        conf_paths=None, drivers=DEFAULT_DRIVERS,
-        auto_conf=True, reconf_once=False,
-        log_lvl='INFO', log_name=None, log_info_format=INFO_FORMAT,
-        log_debug_format=DEBUG_FORMAT, log_warning_format=WARNING_FORMAT,
-        log_error_format=ERROR_FORMAT, log_critical_format=CRITICAL_FORMAT
+            self,
+            unified_category=None,
+            to_configure=None,
+            conf_paths=None, drivers=DEFAULT_DRIVERS,
+            auto_conf=True, reconf_once=False,
+            log_lvl='INFO', log_name=None, log_info_format=INFO_FORMAT,
+            log_debug_format=DEBUG_FORMAT, log_warning_format=WARNING_FORMAT,
+            log_error_format=ERROR_FORMAT, log_critical_format=CRITICAL_FORMAT
     ):
         """
         :param str unified_category: if not None, used such as a unified

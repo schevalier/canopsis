@@ -18,92 +18,15 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+"""canopsis.check.status.conf UTs.
+"""
+
 from unittest import TestCase, main
 
 from random import randint
 
 from canopsis.common.utils import path
-from canopsis.check.archiver import (
-    Archiver, OFF, ONGOING, STEALTHY, FLAPPING, CANCELED, StatusConfiguration
-)
-
-
-ARCHIVER = None
-
-
-def setFields(_map, **kwargs):
-    for key in kwargs:
-        _map[key] = kwargs[key]
-
-
-class KnownValues(TestCase):
-    def setUp(self):
-        self.archiver = Archiver(
-            db='test',
-            autolog=True
-        )
-
-    def _test_01_check_statuses(self):
-
-        rk = 'test_03_check_statuses'
-        ts = 14389
-
-        devent = {
-            'rk': rk,
-            'status': 0,
-            'timestamp': ts,
-            'state': 0
-        }
-
-        event = {
-            'rk': rk,
-            'status': 0,
-            'timestamp': ts + 11,
-            'state': 0,
-            'last_state_change': ts - 389
-        }
-
-        # Check that event stays off even if it appears
-        # more than the bagot freq in the stealthy/bagot interval
-        for x in range(1, 50):
-            self.archiver.check_statuses(event, devent)
-            devent = event.copy()
-            setFields(event, timestamp=(event['timestamp'] + 1))
-            self.assertEqual(event['status'], OFF)
-
-        # Set state to alarm, event should be On Going
-        setFields(event, state=1)
-        self.archiver.check_statuses(event, devent)
-        self.assertEqual(event['status'], ONGOING)
-        devent = event.copy()
-
-        # Set state back to Ok, event should be Stealthy
-        setFields(event, state=0)
-        self.archiver.check_statuses(event, devent)
-        self.assertEqual(event['status'], STEALTHY)
-        devent = event.copy()
-
-        # Move TS out of stealthy range, event should be On Going
-        setFields(event, state=1, timestamp=event['timestamp'] + 1000)
-        self.archiver.check_statuses(event, devent)
-        self.assertEqual(event['status'], ONGOING)
-        devent = event.copy()
-
-        # Check that the event is at Bagot when the requirments are met
-        for x in range(1, 14):
-            if x % 2:
-                setFields(event, state=0 if event['state'] else 1)
-            self.archiver.check_statuses(event, devent)
-            setFields(event, timestamp=(event['timestamp'] + 1))
-            if devent['bagot_freq'] >= self.archiver.flapping_freq:
-                self.assertEqual(event['status'], FLAPPING)
-            devent = event.copy()
-
-        # Check that the event is On Going if out of the Bagot time interval
-        setFields(event, state=1, timestamp=event['timestamp'] + 4000)
-        self.archiver.check_statuses(event, devent)
-        self.assertEqual(event['status'], STEALTHY)
-        devent = event.copy()
+from canopsis.check.status.conf import StatusConfiguration
 
 
 class TestStatusConfiguration(TestCase):
@@ -118,7 +41,7 @@ class TestStatusConfiguration(TestCase):
             {
                 self.name: {
                     StatusConfiguration.CODE: self.value,
-                    StatusConfiguration.TASK: path(setFields)
+                    StatusConfiguration.TASK: path(TestStatusConfiguration)
                 }
             }
         )
@@ -162,7 +85,7 @@ class TestStatusConfiguration(TestCase):
 
         task = self.status_conf.task(self.name)
 
-        self.assertEqual(task, setFields)
+        self.assertEqual(task, TestStatusConfiguration)
 
     def test_task_by_value(self):
         """Test wit a known task by value.
@@ -170,7 +93,7 @@ class TestStatusConfiguration(TestCase):
 
         task = self.status_conf.task(self.value)
 
-        self.assertEqual(task, setFields)
+        self.assertEqual(task, TestStatusConfiguration)
 
     def test_task_by_dict(self):
         """Test wit a known task by dict.
@@ -180,7 +103,7 @@ class TestStatusConfiguration(TestCase):
 
         task = self.status_conf.task(status)
 
-        self.assertEqual(task, setFields)
+        self.assertEqual(task, TestStatusConfiguration)
 
     def test_unknowntask_by_name(self):
         """Test wit an unknown task by name.

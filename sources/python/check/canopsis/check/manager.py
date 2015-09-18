@@ -77,7 +77,7 @@ class CheckManager(MiddlewareRegistry):
     }
 
     #: default function to apply when changing of state
-    DEFAULT_F = 'canopsis.check.task.criticity'
+    DEFAULT_F = 'canopsis.check.status.task.applycriticity'
     valid_states = [0, 1, 2, 3]
 
     def __init__(self, types=None, *args, **kwargs):
@@ -91,8 +91,9 @@ class CheckManager(MiddlewareRegistry):
 
     # TODO , is it used, is it usefull to manage state this way
     def state(
-        self, ids=None, state=None, criticity=HARD, f=DEFAULT_F, query=None,
-        cache=False
+            self,
+            ids=None, state=None, criticity=HARD, f=DEFAULT_F, query=None,
+            cache=False
     ):
         """Get/update entity state(s).
 

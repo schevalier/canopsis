@@ -305,9 +305,10 @@ class Category(object):
             self.put(value)
 
         else:
-            raise Exception('Wrong type to add {0} to {1}. \
-Must be a Category, a Parameter or a list of {Parameter, Category}'.format(
-                value, self))
+            msg = 'Must be a Category, a Parameter or a list of them'
+            raise Exception(
+                'Wrong type to add {0} to {1}. {2}.'.format(value, self, msg)
+            )
 
         return self
 
@@ -367,8 +368,8 @@ class Parameter(object):
         """
 
     def __init__(
-        self, name, parser=None, value=None, critical=False,
-        local=True, asitem=None
+            self, name, parser=None, value=None, critical=False,
+            local=True, asitem=None
     ):
         """
         :param str name: unique by category.
@@ -416,8 +417,8 @@ class Parameter(object):
             try:
                 self._value = self.parser(value)
 
-            except Exception as e:
-                self._value = e
+            except Exception as ex:
+                self._value = ex
 
         else:
             self._value = value
