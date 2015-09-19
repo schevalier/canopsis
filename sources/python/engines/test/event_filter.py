@@ -25,7 +25,7 @@ from unittest import TestCase, main
 
 from logging import DEBUG, INFO
 
-from canopsis.engines import DROP
+from canopsis.engines.core import DROP
 from canopsis.engines.event_filter import engine
 
 # TODO, reset theses tests because they are not accurate and not clean
