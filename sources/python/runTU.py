@@ -21,7 +21,7 @@
 
 from os.path import isdir, join
 from sys import executable
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
 from argparse import ArgumentParser
 from glob import glob
 
@@ -32,8 +32,12 @@ def test(project):
     print('running tests for {0}'.format(project))
     print('**********************************')
 
-    p = Popen([executable, join(project, 'setup.py'), 'test'], stdout=PIPE)
-    return p.communicate()[0]
+    proc = Popen(
+        [executable, join(project, 'setup.py'), 'test'],
+        stdout=PIPE,
+        stderr=STDOUT
+    )
+    return proc.communicate()[0]
 
 
 if __name__ == '__main__':

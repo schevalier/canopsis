@@ -196,7 +196,7 @@ class GetTaskWithParamsTest(TestCase):
 
     def setUp(self):
 
-        self.wrong_function = 'test.test'
+        self.wrong_function = 'test.wrong_function'
 
         self.existing_function = path(get_task_with_params)
 

@@ -23,7 +23,7 @@ from unittest import main
 
 from test.driver.file import ConfigurationDriverTest
 
-from canopsis.configuration.driver.file.json import JSONConfigurationDriver
+from canopsis.configuration.driver.file._json import JSONConfigurationDriver
 
 
 class ConfigurationDriverTest(ConfigurationDriverTest):
@@ -34,7 +34,7 @@ class ConfigurationDriverTest(ConfigurationDriverTest):
 
     def _get_manager_path(self):
 
-        return 'canopsis.configuration.driver.file.json.JSONConfigurationDriver'
+        return 'canopsis.configuration.driver.file._json.JSONConfigurationDriver'
 
     def _get_manager(self):
 

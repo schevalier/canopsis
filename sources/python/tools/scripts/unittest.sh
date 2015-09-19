@@ -52,7 +52,7 @@ do
 
     PYPATH=$UNITTESTDIR/$(echo $TESTNAME | cut -d/ -f2)
 
-    echo -n "- Proceed to $TESTNAME... " 
+    echo -n "- Proceed to $TESTNAME... "
     PYTHONPATH="$PYPATH:$PYTHONPATH" python $UNITTEST > $LOGFILE 2>&1
     EXCODE=$?
 
@@ -64,7 +64,7 @@ do
         FAIL=1
         FAILED="$FAILED $TESTNAME"
     fi
-done 
+done
 
 hypcontrol stop
 
@@ -80,7 +80,7 @@ then
             echo "##################"
             echo
 
-            LOGFILE=$HOME/var/log/unittest/${TESTNAME%.py}.log
+            LOGFILE=$HOME/var/log/unittest/${failedtest%.py}.log
             cat $LOGFILE
         done
     fi

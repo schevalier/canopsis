@@ -80,8 +80,8 @@ class Configurable(object):
     __metaclass__ = MetaConfigurable
 
     DEFAULT_DRIVERS = '{0},{1}'.format(
-        'canopsis.configuration.driver.file.jsondriver.JSONConfigurationDriver',
-        'canopsis.configuration.driver.file.inidriver.INIConfigurationDriver'
+        'canopsis.configuration.driver.file._json.JSONConfigurationDriver',
+        'canopsis.configuration.driver.file._ini.INIConfigurationDriver'
     )
 
     INIT_CAT = 'init_cat'  #: initialization category

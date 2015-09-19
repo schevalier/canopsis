@@ -23,7 +23,7 @@ from unittest import main
 
 from test.driver.file import ConfigurationDriverTest
 
-from canopsis.configuration.driver.file.ini import INIConfigurationDriver
+from canopsis.configuration.driver.file._ini import INIConfigurationDriver
 
 
 class INIConfigurationDriverTest(ConfigurationDriverTest):
@@ -34,7 +34,7 @@ class INIConfigurationDriverTest(ConfigurationDriverTest):
 
     def _get_manager_path(self):
 
-        return 'canopsis.configuration.driver.file.ini.INIConfigurationDriver'
+        return 'canopsis.configuration.driver.file._ini.INIConfigurationDriver'
 
     def _get_manager(self):
 
