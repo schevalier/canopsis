@@ -1,12 +1,34 @@
-.. _user-ui-widgets-categorychart:
+.. _ED__user-ui-widgets-categorychart:
 
+=========================
 How to use Category chart
 =========================
 
-Overview
---------
-
 The Canopsis category chart is a widget that allows to display metrics depending on categories
+
+.. contents::
+   :depth: 2
+
+References
+==========
+
+- :ref:`FR::Categorychart <FR__categorychart>`
+- :ref:`TR::Categorychart <TR__categorychart>`
+
+Updates
+=======
+
+.. csv-table::
+   :header: "Author(s)", "Date", "Version", "Summary", "Accepted by"
+
+   "Eric Régnier", "2015/10/02", "1.0", "Use template", ""
+
+
+Contents
+========
+
+.. _ED__categorychart:
+
 
 Create a category chart in a view
 ---------------------------------
@@ -16,6 +38,7 @@ Inserting a category chart widget in a canopsis view requires management rights.
 First, choose a view where the category chart will be inserted. When done, switch to insert widget edition mode, choose the category chart in the list and click on it. The specific form for the category chart is displayed and let input this widget configuration.
 
 Category chart parameters are explained below.
+
 
 Category chart widget configuration
 -----------------------------------
