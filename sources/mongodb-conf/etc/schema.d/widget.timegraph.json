@@ -18,6 +18,9 @@
     },{
         "title": "Metrics",
         "keys": ["metrics"]
+    },{
+        "title": "Mixins",
+        "keys":["mixins"]
     }],
     "properties": {
         "title":  {
