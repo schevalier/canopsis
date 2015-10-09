@@ -5,7 +5,7 @@
     },
     "categories": [{
         "title": "General",
-        "keys": ["title", "display", "human_readable", "allow_user_display", "metric_template", "use_max_value", "max_value", "text_left_space", "show_legend", "show_tooltip", "show_labels", "stacked"]
+        "keys": ["title", "display", "timewindow", "human_readable", "allow_user_display", "metric_template", "use_max_value", "max_value", "text_left_space", "show_legend", "show_tooltip", "show_labels", "stacked"]
     },{
         "title": "Series",
         "keys":["series"]
@@ -19,6 +19,11 @@
     "properties": {
         "title":  {
             "type": "string"
+        },
+        "timewindow":  {
+            "type": "object",
+            "description" : "Delay between time limit (default is now) and this timewindow where metrics are fetched in order to get the last value.",
+            "role": "durationWithUnits"
         },
         "text_left_space":  {
             "type": "string",
