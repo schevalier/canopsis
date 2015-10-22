@@ -11,6 +11,8 @@ Base
    :titlesonly:
 
    fr__architecture
+   fr__schema
+   fr__event
 
 Systems
 -------
@@ -19,6 +21,9 @@ Systems
    :maxdepth: 1
    :titlesonly:
 
+   fr__engine
+   fr__task
+   fr__output
    fr__graph
    fr__topology
 
@@ -31,3 +36,4 @@ High-Level features
 
    fr__category-chart
    fr__time-chart
+   fr__statistics
