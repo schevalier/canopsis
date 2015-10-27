@@ -5,7 +5,7 @@
     },
     "categories": [{
         "title": "General",
-        "keys": ["title", "zoomable", "subchart", "timewindow", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
+        "keys": ["title", "zoomable", "subchart", "stacked", "timewindow", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
     },{
         "title": "Series",
         "keys":["series"]
@@ -34,6 +34,11 @@
             "type": "boolean",
             "default": false,
             "description": "Display an overview of the current chart under the chart. This is an history navigation system."
+        },
+        "stacked": {
+            "type": "boolean",
+            "default": false,
+            "description": "Display stacked elements in the chart."
         },
         "display": {
             "enum": ["line", "bar", "spline"],
