@@ -5,7 +5,7 @@
     },
     "categories": [{
         "title": "General",
-        "keys": ["title", "timewindow", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
+        "keys": ["title", "zoomable", "subchart", "timewindow", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
     },{
         "title": "Series",
         "keys":["series"]
@@ -24,6 +24,16 @@
             "type": "boolean",
             "default": true,
             "description": "Show metrics values in a human readable way."
+        },
+        "zoomable": {
+            "type": "boolean",
+            "default": true,
+            "description": "Allow zoom on the timechart."
+        },
+        "subchart": {
+            "type": "boolean",
+            "default": false,
+            "description": "Display an overview of the current chart under the chart. This is an history navigation system."
         },
         "display": {
             "enum": ["line", "bar", "spline"],
