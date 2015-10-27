@@ -5,7 +5,7 @@
     },
     "categories": [{
         "title": "General",
-        "keys": ["title", "zoomable", "subchart", "stacked", "timewindow", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
+        "keys": ["title", "tick_count", "zoomable", "subchart", "stacked", "timewindow", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
     },{
         "title": "Series",
         "keys":["series"]
@@ -19,6 +19,14 @@
     "properties": {
         "title":  {
             "type": "string"
+        },
+        "tick_count": {
+            "type": "integer",
+            "max": 100,
+            "tick": 1,
+            "default": 10,
+            "role": "slider",
+            "description": "Tick count for the time axis of the chart"
         },
         "human_readable": {
             "type": "boolean",
