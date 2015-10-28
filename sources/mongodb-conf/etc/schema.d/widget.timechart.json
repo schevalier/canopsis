@@ -5,7 +5,7 @@
     },
     "categories": [{
         "title": "General",
-        "keys": ["title", "tick_count", "zoomable", "subchart", "stacked", "timewindow", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
+        "keys": ["title", "tick_count", "zoomable", "subchart", "stacked", "timewindow", "multi_axes", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
     },{
         "title": "Series",
         "keys":["series"]
@@ -47,6 +47,11 @@
             "type": "boolean",
             "default": false,
             "description": "Display stacked elements in the chart."
+        },
+        "multi_axes": {
+            "type": "boolean",
+            "default": false,
+            "description": "Display curves on different Y axes allowing easier curve comparisons."
         },
         "display": {
             "enum": ["line", "bar", "spline"],
