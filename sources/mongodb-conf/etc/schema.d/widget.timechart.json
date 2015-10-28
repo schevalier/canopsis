@@ -5,7 +5,10 @@
     },
     "categories": [{
         "title": "General",
-        "keys": ["title", "tick_count", "zoomable", "subchart", "stacked", "timewindow", "multi_axes", "display", "human_readable", "allow_user_display", "metric_template", "show_legend", "show_tooltip", "show_labels"]
+        "keys": ["title", "display", "timewindow", "subchart", "zoomable"]
+    },{
+        "title": "Display",
+        "keys": ["stacked", "multi_axes", "human_readable", "date_format", "metric_template", "show_legend", "show_tooltip", "show_labels", "tick_count", "allow_user_display"]
     },{
         "title": "Series",
         "keys":["series"]
@@ -41,7 +44,8 @@
         "subchart": {
             "type": "boolean",
             "default": false,
-            "description": "Display an overview of the current chart under the chart. This is an history navigation system."
+            "description": "Display an overview of the current chart under the chart. This is an history navigation system.",
+            "title": "timenavigation"
         },
         "stacked": {
             "type": "boolean",
@@ -54,7 +58,7 @@
             "description": "Display curves on different Y axes allowing easier curve comparisons."
         },
         "display": {
-            "enum": ["line", "bar", "spline"],
+            "enum": ["line", "bar", "spline", "area", "area-spline"],
             "role": "simplelist",
             "default": "line",
             "description": "Allow to select the categorie chart representation"
@@ -70,6 +74,12 @@
             "type": "string",
             "description": "Select metric to display in the chart. the last value in an interval of 10 minutes is selected by default. Availables template values are <ul><li>connector</li><li>connector_name</li><li>component</li><li>resource</li><li>metric</li></ul>e.g. {{component}} - {{metric}}",
             "title": "metric template"
+        },
+        "date_format": {
+            "enum": ["%m/%Y", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%H:%M:%S"],
+            "role": "simplelist",
+            "default": "%Y-%m-%d",
+            "description": "Select date format display"
         },
         "series": {
             "description": "Select computed metric values usable in the texteditor. When many points selected for the serie interval, the last one's value only is displayed.",
