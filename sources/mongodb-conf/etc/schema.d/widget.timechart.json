@@ -16,6 +16,9 @@
         "title": "Metrics",
         "keys":["metrics"]
     },{
+        "title": "Thresholds",
+        "keys": ["minor_threshold", "major_threshold", "critical_threshold"]
+    },{
         "title": "Mixins",
         "keys":["mixins"]
     }],
@@ -30,6 +33,18 @@
             "default": 10,
             "role": "slider",
             "description": "Tick count for the time axis of the chart"
+        },
+        "minor_threshold": {
+            "type": "integer",
+            "description": "Put an horizontal line on the chart that represents the minor threshold"
+        },
+        "major_threshold": {
+            "type": "integer",
+            "description": "Put an horizontal line on the chart that represents the major threshold"
+        },
+        "critical_threshold": {
+            "type": "integer",
+            "description": "Put an horizontal line on the chart that represents the critical threshold"
         },
         "human_readable": {
             "type": "boolean",
