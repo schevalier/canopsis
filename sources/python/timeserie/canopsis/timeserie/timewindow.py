@@ -32,6 +32,7 @@ from collections import Iterable
 from operator import itemgetter
 
 from datetime import datetime as dt
+import re
 
 
 class Period(object):
@@ -55,6 +56,21 @@ class Period(object):
 
     UNIT = 'unit'
     VALUE = 'value'
+
+    @staticmethod
+    def parameter(value):
+        regex = '([\d]+)\s({0})'.format('|'.join(Period.UNITS))
+
+        matches = re.match(regex, value)
+
+        if matches is not None:
+            arg = {
+                matches.group(2): int(matches.group(1))
+            }
+
+            return Period(**arg)
+
+        return None
 
     def __init__(self, **unit_values):
 
