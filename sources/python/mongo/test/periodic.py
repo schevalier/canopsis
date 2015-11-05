@@ -32,6 +32,7 @@ class PeriodicStoreTest(TestCase):
         self.storage = MongoPeriodicStorage(data_scope="test_store")
 
     def test_connect(self):
+
         self.assertTrue(self.storage.connected())
 
         self.storage.disconnect()
@@ -42,7 +43,8 @@ class PeriodicStoreTest(TestCase):
 
         self.assertTrue(self.storage.connected())
 
-    def test_CRUD(self):
+    def test_crud(self):
+
         # start in droping data
         self.storage.drop()
 
@@ -100,9 +102,13 @@ class PeriodicStoreTest(TestCase):
                     data_id=data_id,
                     period=period, timewindow=timewindow)
                 self.assertEquals(len(data), points_count_in_timewindow)
-                self.assertEquals(data,
-                    [point for point in sorted_points
-                    if point[0] in timewindow])
+                self.assertEquals(
+                    data,
+                    [
+                        point for point in sorted_points
+                        if point[0] in timewindow
+                    ]
+                )
 
                 self.storage.remove(
                     data_id=data_id,

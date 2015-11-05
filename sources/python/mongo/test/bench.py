@@ -87,7 +87,7 @@ class Bench(TestCase):
         """
 
         threads = [
-            Thread(target=self._test_CRUD) for i in range(self.max_connections)
+            Thread(target=self._test_crud) for i in range(self.max_connections)
         ]
 
         for thread in threads:
@@ -96,7 +96,7 @@ class Bench(TestCase):
         for thread in threads:
             thread.join()
 
-    def _test_CRUD(self):
+    def _test_crud(self):
         """
         Bench CRUD commands
         """

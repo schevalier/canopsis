@@ -47,7 +47,7 @@ class MongoCompositeStorageTest(TestCase):
 
         self.assertTrue(self.storage.connected())
 
-    def test_CRUD(self):
+    def test_crud(self):
 
         self.storage.drop()
 

@@ -35,6 +35,7 @@ class DataBaseTest(TestCase):
         )
 
     def test_connect(self):
+
         self.database.connect()
         self.assertTrue(self.database.connected())
         self.database.disconnect()
@@ -108,7 +109,7 @@ class StorageTest(TestCase):
 
         self.assertEqual(final_indexes, _indexes)
 
-    def test_CRUD(self):
+    def test_crud(self):
         document = {'a': 'b'}
 
         self.storage.drop()

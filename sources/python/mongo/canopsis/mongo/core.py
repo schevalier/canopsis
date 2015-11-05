@@ -198,7 +198,7 @@ class MongoStorage(MongoDataBase, Storage):
     __register__ = True  #: register this class to middleware
     __protocol__ = 'mongodb'  #: register this class to the protocol mongodb
 
-    ID = '_id'  #: ID mongo
+    ID = '_id'  #: base ID mongo name.
 
     def _connect(self, *args, **kwargs):
 

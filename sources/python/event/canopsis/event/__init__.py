@@ -18,7 +18,7 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-__version__ = "0.1"
+__version__ = '0.1'
 
 from socket import setdefaulttimeout, getfqdn, gethostname, gethostbyaddr
 from time import time

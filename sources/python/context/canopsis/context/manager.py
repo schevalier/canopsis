@@ -19,13 +19,14 @@
 # ---------------------------------
 
 from canopsis.configuration.configurable.decorator import (
-    conf_paths, add_category)
+    conf_paths, add_category
+)
 from canopsis.middleware.registry import MiddlewareRegistry
 from canopsis.event import Event, forger
 from canopsis.storage.composite import CompositeStorage
 
-CONF_RESOURCE = 'context/context.conf'  #: last context conf resource
-CATEGORY = 'CONTEXT'  #: context category
+CONF_RESOURCE = 'context/context.conf'  #: last context conf resource.
+CATEGORY = 'CONTEXT'  #: context category.
 
 
 @add_category(CATEGORY)

@@ -20,61 +20,130 @@
 
 from canopsis.storage.core import Storage
 
+from canopsis.timeserie.timewindow import Period
 
+from canopsis.configuration.configurable.decorator import (
+    conf_paths, add_category
+)
+
+CONF_RESOURCE = 'storage/periodic.conf'  #: last storage resource.
+CATEGORY = 'PERIODIC'  #: storage category.
+
+
+@conf_paths(CONF_RESOURCE)
+@add_category(CATEGORY)
 class PeriodicStorage(Storage):
+    """Storage dedicated to manage periodic data.
+
+    A periodic data is ponctual but it might be helpful to indicate a period
+    related to new data value storing. In such case, all methods use a local
+    period. If not given, the storage period is used.
     """
-    Storage dedicated to manage periodic data.
-    """
 
-    __datatype__ = 'periodic'
+    __datatype__ = 'periodic'  #: storage data type.
 
-    TIMESTAMP = 'timestamp'
-    VALUES = 'values'
-    PERIOD = 'period'
-    LAST_UPDATE = 'last_update'
+    TIMESTAMP = 'timestamp'  #: data timestamp.
+    VALUES = 'values'  #: data values.
+    PERIOD = 'period'  #: data value period.
+    LAST_UPDATE = 'last_update'  #: data value last_update
 
-    def count(self, data_id, period, timewindow=None):
-        """
-        Get number of periodic documents for input data_id.
+    DEFAULT_PERIOD = Period(minute=5)  #: default storage period.
+
+    def __init__(self, period=None, *args, **kwargs):
+
+        super(PeriodicStorage, self).__init__(*args, **kwargs)
+
+        if period is None:
+            self.period = PeriodicStorage.DEFAULT_PERIOD
+
+        else:
+            self.period = period.copy()
+
+    def count(self, data_id, period=None, timewindow=None):
+        """Get number of periodic documents for input data_id.
+
+        :param str data_id: related data_id.
+        :param Period period: period to use. Default is this period.
+        :param TimeWindow timewindow: timewindow which contains points.
+        :rtype: int
         """
 
         raise NotImplementedError()
 
     def size(
-        self, data_id=None, period=None, timewindow=None,
-        *args, **kwargs
+            self, data_id=None, period=None, timewindow=None, *args, **kwargs
     ):
-        """
-        Get size occupied by research filter data_id
+        """Get size occupied by research filter data_id.
+
+        :param str data_id: related data_id.
+        :param Period period: period to use. Default is this period.
+        :param TimeWindow timewindow: timewindow which contains points.
+        :rtype: int
         """
 
         raise NotImplementedError()
 
     def get(
-        self, data_id, period, timewindow=None, limit=0, skip=0, sort=None
+            self, data_id, period=None, timewindow=None, _filter=None,
+            limit=0, skip=0, sort=None
     ):
-        """
-        Get a list of points.
+        """Get a list of data by timestamp.
+
+        :param str data_id: related data_id.
+        :param Period period: period to use. Default is this period.
+        :param TimeWindow timewindow: timewindow which contains points.
+        :param dict _filter: value filter.
+        :param int limit: maximal number of points to retrieve.
+        :param int skip: number of points to avoid in the set of iterated
+            points.
+        :param list sort: list of (data field name, data field value) which
+            gives the order of values in the result.
+
+        :rtype: list
         """
 
         raise NotImplementedError()
 
-    def put(self, data_id, period, points, cache=False):
+    def find(
+            self, period=None, timewindow=None, _filter=None,
+            limit=0, skip=0, sort=0
+    ):
+
+        """Get a list of data by timestamp.
+
+        :param Period period: period to use. Default is this period.
+        :param TimeWindow timewindow: timewindow which contains points.
+        :param dict _filter: value filter.
+        :param int limit: maximal number of points to retrieve.
+        :param int skip: number of points to avoid in the set of iterated
+            points.
+        :param list sort: list of (data field name, data field value) which
+            gives the order of values in the result.
+
+        :rtype: list
         """
-        Put periodic points in periodic collection with specific period values.
 
-        points is an iterable of (timestamp, value)
+        raise NotImplementedError()
 
+    def put(self, data_id, data, period=None, cache=False):
+        """Put periodic data with related timestamps.
+
+        :param Period period: period to use. Default is this period.
+        :param Iterable data: iterable of (timestamp, value).
         :param bool cache: use query cache if True (False by default).
         """
 
         raise NotImplementedError()
 
-    def remove(self, data_id, period=None, timewindow=None, cache=False):
-        """
-        Remove periodic data related to data_id, timewindow and period.
-        If timewindow is None, remove all periodic_data with input period.
-        If period is None, remove all data whatever related period.
+    def remove(
+            self, data_id, period=None, timewindow=None, cache=False,
+            _filter=None
+    ):
+        """Remove periodic data related to data_id, timewindow and period.
+
+        :param Period period: period to use. Default is this period.
+        :param TimeWindow timewindow: time interval where existing points will
+            be deleted. If None (default), remove all data with input period.
 
         :param bool cache: use query cache if True (False by default).
         """
