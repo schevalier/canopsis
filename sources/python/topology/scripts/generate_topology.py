@@ -191,7 +191,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         dest='type',
-        help='topology type. Values are {context (default), rules, test, json}. If type is json, the name is a json path',
+        help='topology type. Values are {context (default), rules, test, json}.',
         default='context'
     )
     parser.add_argument(
