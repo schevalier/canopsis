@@ -28,9 +28,7 @@ from canopsis.graph.elements import Graph, Vertice, Edge
 class GraphTest(TestCase):
 
     def setUp(self):
-        """
-        Create self.count=10 and self.graphs
-        """
+        """Create self.count=10 and self.graphs."""
 
         self.manager = GraphManager(data_scope='test_graph')
 
@@ -110,16 +108,12 @@ class GraphTest(TestCase):
             graph.save(manager=self.manager)
 
     def tearDown(self):
-        """
-        Del all elements
-        """
+        """Del all elements."""
 
         self.manager.del_elts()
 
     def test_get_elts(self):
-        """
-        Test to put graph and get them back
-        """
+        """Test to put graph and get them back."""
 
         self.manager.del_elts()
         # ensure no element exist in storage
@@ -180,9 +174,7 @@ class GraphTest(TestCase):
                 self.assertEqual(len(elts), 3)
 
     def test_get_edges(self):
-        """
-        Test GraphManager.get_edges.
-        """
+        """Test GraphManager.get_edges."""
 
         # check get all edges
         edges = set(self.manager.get_edges())

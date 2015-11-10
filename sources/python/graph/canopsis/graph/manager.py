@@ -90,8 +90,8 @@ class GraphManager(MiddlewareRegistry):
         :param info: info query.
         :param dict query: element search query.
         :param str base_type: elt base type.
-        :param bool serialize: serialize result to GraphElements if True
-            (by default).
+        :param bool serialize: serialize result to GraphElements if True (by
+            default).
         :param type cls: GraphElement type to retrieve if not None.
 
         :return: element(s) corresponding to input ids and query.

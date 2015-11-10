@@ -29,12 +29,15 @@ from canopsis.task.condition import condition
 
 from argparse import ArgumentParser
 
+from json import load, loads
+
+from os.path import exist
+
 manager = TopologyManager()
 
 
 def generate_test(topo, name='test'):
-    """Generate a test topology.
-    """
+    """Generate a test topology."""
 
     # create compositions of all actions and conditions
     actions = [
@@ -74,9 +77,8 @@ def generate_test(topo, name='test'):
             topo.add_elts(edge)
 
 
-def generate_topology(name, _type):
-    """Generate a topology related to a name and type.
-    """
+def generate_topology(name, _type, path=None):
+    """Generate a topology related to a name and type."""
 
     # delete old topology
     topo = manager.get_graphs(ids=name)
@@ -91,8 +93,26 @@ def generate_topology(name, _type):
         generate_rules_topology(topo=topo, name=name)
     elif _type == 'test':
         generate_test(topo=topo, name=name)
+    elif _type == 'json':
+        generate_json(topo=topo, name=name, path=path)
     # save topology
     topo.save(manager=manager)
+
+
+def generate_json(topo, path, name='json'):
+    """Generate a topology from a json file."""
+
+    topojson = None
+
+    if exist(path):
+        with open(path, 'rb') as fps:
+            topojson = load(fps)
+
+    else:
+        topojson = loads(path)
+
+    if topojson is not None:
+        manager.put_elts(elts=topojson, graph_ids=topo.id, cache=True)
 
 
 def generate_context_topology(topo, name='context'):
@@ -147,8 +167,7 @@ def generate_context_topology(topo, name='context'):
 
 
 def generate_rules_topology(topo, name):
-    """Generate a topology with rules.
-    """
+    """Generate a topology with rules."""
 
     elts = []
     # create a simple rule
@@ -168,16 +187,21 @@ if __name__ == '__main__':
     parser = ArgumentParser(description='Generate a topology')
     parser.add_argument(
         dest='name',
-        help='topology name to generate (default: context)',
-        default='context'
+        help='topology name to generate.'
     )
     parser.add_argument(
         dest='type',
-        help='topology type among context, rules, test (default: context)',
+        help='topology type. Values are {context (default), rules, test, json}. If type is json, the name is a json path',
         default='context'
+    )
+    parser.add_argument(
+        dest='path',
+        help='contains topology properties for json topology type (file path or stream).',
+        default=None
     )
     args = parser.parse_args()
 
     topology_name = args.name
     topology_type = args.type
-    generate_topology(name=topology_name, _type=topology_type)
+    path = args.path
+    generate_topology(name=topology_name, _type=topology_type, path=path)

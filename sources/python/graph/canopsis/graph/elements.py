@@ -154,7 +154,7 @@ class GraphElement(object):
 
         result = '{}:('.format(type(self).__name__)
 
-        for index, slot in enumerate(type(self).__slots__):
+        for slot in type(self).__slots__:
             value = getattr(self, slot, None)
             result += '{}:{}, '.format(slot, value)
 
@@ -211,8 +211,7 @@ class GraphElement(object):
         return result
 
     def to_dict(self):
-        """Transform self to a dict in storing public attributes.
-        """
+        """Transform self to a dict in storing public attributes."""
 
         result = {}
         # set public attributes
