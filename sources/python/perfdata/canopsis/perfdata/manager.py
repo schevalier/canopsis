@@ -197,7 +197,8 @@ class PerfData(MiddlewareRegistry):
                 self[PerfData.META_STORAGE].put(
                     data_id=metric_id,
                     value=meta,
-                    timestamp=min_timestamp
+                    timestamp=min_timestamp,
+                    cache=cache
                 )
 
     def remove(
