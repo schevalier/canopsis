@@ -35,3 +35,14 @@ High-Level features
    :titlesonly:
 
    fr__category-chart
+   fr__statistics
+
+Front-end
+---------
+
+.. toctree::
+   :maxdepth: 1
+   :titlesonly:
+
+   fr__mixins
+
