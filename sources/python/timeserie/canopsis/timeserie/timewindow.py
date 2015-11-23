@@ -188,7 +188,7 @@ class Period(object):
         result = Period()
 
         counts_with_unit = zip(Period.UNITS, Period.MAX_UNIT_VALUES)
-        previous_unit, previous_count = counts_with_unit.pop(-1)
+        previous_unit, _ = counts_with_unit.pop(-1)
         counts_with_unit.reverse()
 
         for unit, count in counts_with_unit:
@@ -274,14 +274,19 @@ class Period(object):
 
         if normalize:  # set to minimal value for all units before minimal unit
             parameters = {}
+
             if Period.MICROSECOND not in self:
                 parameters[Period.MICROSECOND] = 0
+
                 if Period.SECOND not in self:
                     parameters[Period.SECOND] = 0
+
                     if Period.MINUTE not in self:
                         parameters[Period.MINUTE] = 0
+
                         if Period.HOUR not in self:
                             parameters[Period.HOUR] = 0
+
                             # check week have to be normalized
                             if Period.WEEK in self:
                                 # get the right monday
@@ -291,6 +296,7 @@ class Period(object):
                                 year = datetime.year
                                 # get week value
                                 v = self[Period.WEEK]
+
                                 # find the right week which corresponds to day
                                 for week_index, week in enumerate(
                                     _monthcalendar
@@ -302,28 +308,37 @@ class Period(object):
                                         norm_week = _monthcalendar[norm_idx]
                                         # get last monday
                                         day = norm_week[0]
+
                                         # if monday appeared previous month
                                         if day == 0:
                                             month -= 1
+
                                             if month == 0:
                                                 month = 12
                                                 year -= 1
                                                 # update year
                                                 parameters[Period.YEAR] = year
+
                                             # update month
                                             parameters[Period.MONTH] = month
                                             # get previous month calendar
                                             mc = monthcalendar(year, month)
                                             # get last old monday
                                             day = mc[-1][0]
+
                                         break
+
                                 parameters[Period.DAY] = day
+
                             elif Period.DAY not in self:
                                 parameters[Period.DAY] = 1
+
                                 if Period.MONTH not in self:
                                     parameters[Period.MONTH] = 1
+
                                     if Period.YEAR not in self:
                                         parameters[Period.YEAR] = 0
+
             result = result.replace(**parameters)
 
         return result
@@ -342,6 +357,7 @@ class Period(object):
         units.reverse()
 
         for unit in units:
+
             if unit in self:
                 result = {Period.UNIT: unit, Period.VALUE: self[unit]}
 
@@ -367,8 +383,8 @@ class Period(object):
 
         splitted = serialized.split(',')
 
-        for s in splitted:
-            args = s.split('=')
+        for sub in splitted:
+            args = sub.split('=')
             if len(args) == 2:
                 params[args[0]] = float(args[1])
             else:
@@ -386,7 +402,7 @@ class Interval(object):
     """
 
     class IntervalError(Exception):
-        pass
+        """Handle Interval errors."""
 
     __slots__ = ['sub_intervals']
 
@@ -683,7 +699,7 @@ class TimeWindow(object):
     """
 
     class TimeWindowError(Exception):
-        pass
+        """Handle TimeWindow errors."""
 
     DEFAULT_DURATION = 60 * 60 * 24  # one day
 
@@ -750,8 +766,7 @@ class TimeWindow(object):
         return result
 
     def __contains__(self, *timestamps):
-        """True if input timestamps are in this timewindow.
-        """
+        """True if input timestamps are in this timewindow."""
 
         result = timestamps in self.interval
 

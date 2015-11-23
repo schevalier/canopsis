@@ -32,11 +32,10 @@ TIMESTAMP = 't'  #: minimal value timestamp field name
 class MongoPeriodicalStorage(MongoStorage, PeriodicalStorage):
     """Mongo implementation of the periodic storage."""
 
-    TIMESTAMP_BY_ID = \
-        [
-            (DATA_ID, MongoStorage.ASC),
-            (TIMESTAMP, MongoStorage.DESC)
-        ]
+    TIMESTAMP_BY_ID = [
+        (DATA_ID, MongoStorage.ASC),
+        (TIMESTAMP, MongoStorage.DESC)
+    ]
 
     def get(
             self, data_ids, timewindow=None, limit=0, skip=0, sort=None,

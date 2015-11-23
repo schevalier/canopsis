@@ -31,7 +31,7 @@ VALUES = 'v'  #: values field name.
 LAST_TIMESTAMP = 'l'  #: last update timestamp field name
 COUNT = 'c'  #: number of values per document
 
-QUERY = [(DATA_ID, 1), (TIMESTAMP, 1)]  #: mongo document index
+QUERY = [(DATA_ID, 1), (TIMESTAMP, -1)]  #: mongo document index
 
 
 class MongoPonctualStorage(MongoStorage, PonctualStorage):
@@ -82,10 +82,8 @@ class MongoPonctualStorage(MongoStorage, PonctualStorage):
         where = {DATA_ID: data_id}
 
         if timewindow is not None:
-            where[TIMESTAMP] = {
-                '$gte': timewindow.start(),
-                '$lte': timewindow.stop()
-            }
+            where[TIMESTAMP] = {'$lte': timewindow.stop()}
+            where[LAST_TIMESTAMP] = {'$gte': timewindow.start()}
 
         cursor = self._find(document=where)
         cursor.hint(QUERY)
@@ -94,26 +92,33 @@ class MongoPonctualStorage(MongoStorage, PonctualStorage):
 
         return result
 
+    def _get_documents(self, data_id, start=None, stop=None):
+
+        query = {DATA_ID: data_id}
+
+        if start is not None:  # manage specific timewindow
+            query[LAST_TIMESTAMP] = {'$gte': start}
+
+        if stop is not None:
+            query[TIMESTAMP] = {'$lte': stop}
+
+        result = self._find(document=query)
+
+        result.cursor(QUERY)
+
+        return result
+
     def get(
             self, data_id, timewindow=None, limit=None, skip=None,
             *args, **kwargs
     ):
 
-        query = self._get_documents_query(
-            data_id=data_id,
-            timewindow=timewindow
-        )
-
-        projection = {
-            TIMESTAMP: 1,
-            VALUES: 1
-        }
-
-        cursor = self._find(document=query, projection=projection)
-
-        cursor.hint(QUERY)
-
         result = []
+
+        start = None if timewindow is None else timewindow.start()
+        stop = None if timewindow is None else timewindow.stop()
+
+        cursor = self._get_documents(data_id=data_id, start=start, stop=stop)
 
         if limit != 0:
             cursor = cursor[:limit]
@@ -158,13 +163,11 @@ class MongoPonctualStorage(MongoStorage, PonctualStorage):
         for subset in subsets:
 
             if subset:
-                timestamp = subset[0][0]
-                last_timestamp = subset[-1][0]
                 lensubset = len(subset)
 
                 document = {
-                    TIMESTAMP: timestamp,
-                    LAST_TIMESTAMP: last_timestamp,
+                    TIMESTAMP: subset[0][0],
+                    LAST_TIMESTAMP: subset[-1][0],
                     DATA_ID: data_id,
                     COUNT: lensubset,
                     VALUES: subset
@@ -184,15 +187,31 @@ class MongoPonctualStorage(MongoStorage, PonctualStorage):
         # sort values by timestamp
         values.sort(key=itemgetter(0))
 
-        # get documents
-        timewindow = TimeWindow(start=values[0][0], stop=values[-1][0])
-        document_query = self._get_documents_query(
-            data_id=data_id, timewindow=timewindow
-        )
         # documents to update
-        documents = list(self._find(document=document_query))
+        documents = list(self._get_documents(
+            data_id=data_id, start=values[0][0], stop=values[-1][0]
+        ))
+
+        # add first document if necessary
+        old_documents = self._find(
+            document={
+                '$query': {TIMESTAMP: {'$lte': values[0][0]}},
+                '$orderby': {TIMESTAMP: -1}
+            }
+        )
+        old_documents.limit(1)
+        for old_document in old_documents:
+            if (
+                old_document[LAST_TIMESTAMP] <= values[0][0]
+                and old_document[COUNT] < self.maxcount
+            ):
+
+                documents.insert(0, old_document)
 
         for document in documents:
+
+            if not values:  # stop as soon as values is empty
+                break
 
             self._migrate(document)
 
@@ -207,6 +226,8 @@ class MongoPonctualStorage(MongoStorage, PonctualStorage):
 
             document[VALUES] = dvalues
             document[COUNT] = len(dvalues)
+            document[TIMESTAMP] = dvalues[0][0]
+            document[LAST_TIMESTAMP] = dvalues[-1][0]
 
         else:
             if values:  # if values left
@@ -228,57 +249,79 @@ class MongoPonctualStorage(MongoStorage, PonctualStorage):
 
     def remove(self, data_id, timewindow=None, cache=False, *args, **kwargs):
 
-        query = self._get_documents_query(
-            data_id=data_id, timewindow=timewindow
-        )
-
         if timewindow is not None:
 
-            projection = {
-                TIMESTAMP: 1,
-                VALUES: 1
-            }
+            values = self.get(data_id=data_id, timewindow=timewindow)
 
-            documents = self._find(document=query, projection=projection)
+            # get documents to update
+            documents = self._get_documents(
+                data_id=data_id,
+                start=timewindow.start(),
+                stop=timewindow.stop()
+            )
+
+            # add first document if necessary
+            old_documents = self._find(
+                document={
+                    '$query': {TIMESTAMP: {'$lte': values[0][0]}},
+                    '$orderby': {TIMESTAMP: -1}
+                }
+            )
+            old_documents.limit(1)
+            for old_document in old_documents:
+                if (
+                    old_document[LAST_TIMESTAMP] <= values[0][0]
+                    and old_document[COUNT] < self.maxcount
+                ):
+
+                    documents.insert(0, old_document)
 
             for document in documents:
-                timestamp = document.get(TIMESTAMP)
-                values = document.get(VALUES)
-                values_to_save = {
-                    t: values[t] for t in values
-                    if (timestamp + int(t)) not in timewindow
-                }
-                _id = document.get('_id')
 
-                if len(values_to_save) > 0:
+                if not values:
+                    document[VALUES] = []
+
+                else:
+                    dvalues = values[0: self.maxcount]
+                    lendvalues = len(dvalues)
+                    values = values[self.maxcount:]
+
+                    document[VALUES] = dvalues
+                    document[TIMESTAMP] = dvalues[0][0]
+                    document[LAST_TIMESTAMP] = dvalues[-1][0]
+                    document[COUNT] = lendvalues
+
+                    if lendvalues < self.maxcount:
+                        dvalues += list(
+                            (0., 0.) for _ in range(self.maxcount - lendvalues)
+                        )
+
+            ids_to_remove = []
+
+            for document in documents:
+                _id = document[MongoStorage.ID]
+                if document[VALUES]:
                     self._update(
-                        spec={'_id': _id},
-                        document={'$set': {VALUES: values_to_save}},
+                        spec=_id,
+                        document={'$set': {VALUES: document[VALUES]}},
                         cache=cache
                     )
                 else:
-                    self._remove(document=_id, cache=cache)
+                    ids_to_remove.append(_id)
+
+            if ids_to_remove:
+                self._remove(
+                    document={MongoStorage.ID: {'$in': ids_to_remove}},
+                    cache=cache
+                )
 
         else:
-            self._remove(document=query, cache=cache)
+            self._remove(document={DATA_ID: data_id}, cache=cache)
 
     def all_indexes(self, *args, **kwargs):
 
         result = super(MongoPonctualStorage, self).all_indexes(*args, **kwargs)
 
         result.append(QUERY)
-
-        return result
-
-    @staticmethod
-    def _get_documents_query(data_id, timewindow):
-        """Get mongo documents query about data_id, timewindow."""
-
-        result = {DATA_ID: data_id}
-
-        if timewindow is not None:  # manage specific timewindow
-
-            result[TIMESTAMP] = {'$lte': timewindow.stop()}
-            result[LAST_TIMESTAMP] = {'$gte': timewindow.start()}
 
         return result
