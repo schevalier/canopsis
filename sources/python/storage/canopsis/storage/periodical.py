@@ -21,14 +21,14 @@
 from canopsis.storage.core import Storage
 
 
-class TimedStorage(Storage):
-    """
-    Store dedicated to manage timed data.
+class PeriodicalStorage(Storage):
+    """Store dedicated to manage periodical data.
+
     It saves one value at one timestamp.
     Two consecutives timestamp values can not be same values.
     """
 
-    __datatype__ = 'timed'
+    __datatype__ = 'periodic'
 
     class Index:
 
@@ -43,8 +43,7 @@ class TimedStorage(Storage):
     def get(
         self, data_ids, timewindow=None, limit=0, skip=0, sort=None
     ):
-        """
-        Get a dictionary of sorted list of triplet of dictionaries such as :
+        """Get a dictionary of sorted list of triplet of dictionaries such as :
 
         dict(
             tuple(
@@ -60,15 +59,12 @@ class TimedStorage(Storage):
         raise NotImplementedError()
 
     def count(self, data_id):
-        """
-        Get number of timed documents for input data_id.
-        """
+        """Get number of periodical documents for input data_id."""
 
         raise NotImplementedError()
 
     def put(self, data_id, value, timestamp, cache=False):
-        """
-        Put a dictionary of value by name in collection.
+        """Put a dictionary of value by name in collection.
 
         :param bool cache: use query cache if True (False by default).
         """
@@ -76,8 +72,7 @@ class TimedStorage(Storage):
         raise NotImplementedError()
 
     def remove(self, data_ids, timewindow=None, cache=False):
-        """
-        Remove timed_data existing on input timewindow.
+        """Remove periodical data existing on input timewindow.
 
         :param bool cache: use query cache if True (False by default).
         """
