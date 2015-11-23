@@ -278,6 +278,8 @@ class MongoPonctualStorage(MongoStorage, PonctualStorage):
 
             for document in documents:
 
+                self._migrate(document=document)
+
                 if not values:
                     document[VALUES] = []
 
