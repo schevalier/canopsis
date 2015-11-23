@@ -156,8 +156,9 @@ class MongoPeriodicalStorage(MongoStorage, PeriodicalStorage):
             where[DATA_ID] = data_ids
 
         if timewindow is not None:
-            where[TIMESTAMP] = \
-                {'$gte': timewindow.start(), '$lte': timewindow.stop()}
+            where[TIMESTAMP] = {
+                '$gte': timewindow.start(), '$lte': timewindow.stop()
+            }
 
         self._remove(document=where, cache=cache)
 
