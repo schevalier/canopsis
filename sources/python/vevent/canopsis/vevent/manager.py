@@ -18,9 +18,6 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-"""
-"""
-
 from canopsis.common.init import basestring
 from canopsis.configuration.configurable.decorator import (
     conf_paths, add_category

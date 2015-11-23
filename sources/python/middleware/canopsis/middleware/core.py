@@ -133,6 +133,16 @@ class MetaMiddleware(MetaConfigurable):
         if self.__register__:
             self.register_middleware()
 
+    def __call__(cls, *args, **kwargs):
+        """Connect the middleware if necessary."""
+
+        result = MetaConfigurable.__call__(cls, *args, **kwargs)
+
+        if result.auto_connect:
+            result.connect()
+
+        return result
+
 
 class Middleware(Configurable):
     """Abstract class which aims to manage middleware.
@@ -475,14 +485,14 @@ class Middleware(Configurable):
         :return: True if connection has succeed
         """
 
-        if not self.connected():
+        if not self.connected:
 
             self.logger.debug('Trying to connect to %s' % self.uri)
 
             self._conn = self._connect()
 
             # initialize the environment if connection is connected
-            if self.connected():
+            if self.connected:
                 self.logger.debug('Initialize the environment')
                 self._init_env(self._conn)
 
@@ -492,7 +502,7 @@ class Middleware(Configurable):
         else:
             self.logger.debug('Already connected to %s' % self.uri)
 
-        return self.connected()
+        return self.connected
 
     def _connect(self):
         """Protected connection which has to be implemented by specialization
@@ -515,7 +525,7 @@ class Middleware(Configurable):
         .. seealso:: connect(self), connected(self), reconnect(self)
         """
 
-        if self.connected():
+        if self.connected:
 
             self.logger.debug("Disconnect %s from %s" % (self, self.uri))
 
@@ -529,11 +539,11 @@ class Middleware(Configurable):
             self.logger.debug("%s is already disconnected" % self)
 
     def _disconnect(self):
-        """Method to implement in order to disconnect this middleware.
-        """
+        """Method to implement in order to disconnect this middleware."""
 
         raise NotImplementedError()
 
+    @property
     def connected(self):
         """
         :returns: True if this is connected.
@@ -542,7 +552,8 @@ class Middleware(Configurable):
         return False
 
     def reconnect(self):
-        """Try to reconnect and returns connection result
+        """Try to reconnect and returns connection result only if a connection
+            exists and is not alive.
 
         :return: True if connected
         :rtype: bool
@@ -550,24 +561,26 @@ class Middleware(Configurable):
 
         result = False
 
-        try:
-            self.disconnect()
+        if self._conn is not None and not self.connected:
 
-        except Exception as err:
-            self.logger.warning(
-                'Disconnection problem while attempting to reconnect %s: %s' %
-                (self, err)
-            )
-
-        else:
             try:
-                result = self.connect()
+                self.disconnect()
 
             except Exception as err:
                 self.logger.warning(
-                    'Connection problem while attempting to reconnect %s: %s' %
+                    'Disconnection problem while attempting to reconnect %s: %s' %
                     (self, err)
                 )
+
+            else:
+                try:
+                    result = self.connect()
+
+                except Exception as err:
+                    self.logger.warning(
+                        'Connection problem while attempting to reconnect %s: %s' %
+                        (self, err)
+                    )
 
         return result
 
@@ -787,11 +800,13 @@ class Middleware(Configurable):
 
             result.auto_connect = auto_connect
             result.configure(conf=conf)
+            if auto_connect:
+                result.connect()
 
         return result
 
     @staticmethod
-    def get_middleware_by_uri(uri, *args, **kwargs):
+    def get_middleware_by_uri(uri, auto_connect=True, *args, **kwargs):
         """Instantiate the right middleware related to input uri.
 
         :param str uri: the uri may contains a protocol of type 'protocol' or
@@ -832,8 +847,10 @@ class Middleware(Configurable):
             )
 
             # set auto_connect to true
-            result._auto_connect = True
+            result._auto_connect = auto_connect
             # and configure the result
             result.configure(conf=conf)
+            if auto_connect:
+                result.connect()
 
         return result

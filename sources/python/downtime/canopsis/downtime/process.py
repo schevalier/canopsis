@@ -20,6 +20,7 @@
 
 """Module in charge of defining downtime processing in engines."""
 
+from canopsis.common.utils import singleton_per_scope
 from canopsis.context.manager import Context
 from canopsis.pbehavior.manager import PBehaviorManager
 from canopsis.task.core import register_task
@@ -30,10 +31,6 @@ from canopsis.old.storage import get_storage
 
 from datetime import datetime, timedelta
 from icalendar import Event as vEvent
-
-
-ctxmgr = Context()  #: default context manager
-pbmgr = PBehaviorManager()  #: default pbehavior manager
 
 events = get_storage(
     namespace='events',
@@ -60,10 +57,10 @@ def event_processing(
     """
 
     if context is None:
-        context = ctxmgr
+        context = singleton_per_scope(Context)
 
     if manager is None:
-        manager = pbmgr
+        manager = singleton_per_scope(PBehaviorManager)
 
     evtype = event[Event.TYPE]
     entity = context.get_entity(event)

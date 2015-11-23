@@ -21,8 +21,13 @@
 from canopsis.common.init import basestring
 from canopsis.storage.core import Storage, DataBase, Cursor
 from canopsis.common.utils import isiterable
+from canopsis.configuration.configurable.decorator import (
+    add_category, conf_paths
+)
+from canopsis.configuration.parameters import Parameter
 
 from pymongo import MongoClient
+from pymongo.mongo_replica_set_client import MongoReplicaSetClient
 from pymongo.cursor import Cursor as _Cursor
 from pymongo.errors import (
     TimeoutError, OperationFailure, ConnectionFailure, DuplicateKeyError
@@ -30,15 +35,27 @@ from pymongo.errors import (
 from pymongo.bulk import BulkOperationBuilder
 from pymongo.read_preferences import ReadPreference
 
+CONF_PATH = 'mongo/storage.conf'
+CATEGORY = 'MONGO'
 
+
+@conf_paths(CONF_PATH)
+@add_category(
+    name=CATEGORY,
+    content=[
+        Parameter('read_preference'),
+        Parameter('secondary_acceptable_latency_ms', parser=int)
+    ]
+)
 class MongoDataBase(DataBase):
-    """
-    Manage access to a mongodb.
-    """
+    """Manage access to a mongodb."""
+
+    _CONN = None  #: shared connection
 
     def __init__(
             self, host=MongoClient.HOST, port=MongoClient.PORT,
             read_preference=ReadPreference.NEAREST,
+            secondary_acceptable_latency_ms=15,
             *args, **kwargs
     ):
 
@@ -47,6 +64,7 @@ class MongoDataBase(DataBase):
         )
 
         self.read_preference = read_preference
+        self.secondary_acceptable_latency_ms = secondary_acceptable_latency_ms
 
     @property
     def read_preference(self):
@@ -58,6 +76,7 @@ class MongoDataBase(DataBase):
 
         if isinstance(value, basestring):
             value = getattr(ReadPreference, value, ReadPreference.NEAREST)
+
         else:
             value = int(value)
 
@@ -65,48 +84,59 @@ class MongoDataBase(DataBase):
 
     def _connect(self, *args, **kwargs):
 
-        result = None
+        result = MongoDataBase._CONN
 
-        connection_args = {}
+        if result is None or not result.alive():
 
-        # if self host is given
-        if self.host:
-            connection_args['host'] = self.host
-        # if self port is given
-        if self.port:
-            connection_args['port'] = self.port
-        # if self replica set is given
-        if self.replicaset:
-            connection_args['replicaSet'] = self.replicaset
-            connection_args['read_preference'] = self.read_preference
+            conncls = MongoReplicaSetClient if self.replicaset else MongoClient
 
-        connection_args['j'] = self.journaling
-        connection_args['w'] = 1 if self.safe else 0
+            connection_args = {}
 
-        if self.ssl:
-            connection_args.update(
-                {
-                    'ssl': self.ssl,
-                    'ssl_keyfile': self.ssl_key,
-                    'ssl_certfile': self.ssl_cert
-                }
-            )
+            # if self host is given
+            if self.host:
+                connection_args['host'] = self.host
+            # if self port is given
+            if self.port:
+                connection_args['port'] = self.port
+            # if self replica set is given
+            if self.replicaset:
+                connection_args['replicaSet'] = self.replicaset
+                connection_args['read_preference'] = self.read_preference
+                connection_args['secondary_acceptable_latency_ms'] = \
+                    self.secondary_acceptable_latency_ms
 
-        self.logger.debug('Trying to connect to {0}'.format(connection_args))
+            connection_args['j'] = self.journaling
+            connection_args['w'] = 1 if self.safe else 0
 
-        try:
-            result = MongoClient(**connection_args)
-        except ConnectionFailure as cfe:
-            self.logger.error(
-                'Raised {2} during connection attempting to {0}:{1}.'.
-                format(self.host, self.port, cfe)
-            )
-        else:
+            if self.ssl:
+                connection_args.update(
+                    {
+                        'ssl': self.ssl,
+                        'ssl_keyfile': self.ssl_key,
+                        'ssl_certfile': self.ssl_cert
+                    }
+                )
+
+            self.logger.debug('Trying to connect to {0}'.format(connection_args))
+
+            try:
+                result = MongoDataBase._CONN = conncls(**connection_args)
+
+            except ConnectionFailure as cfe:
+                self.logger.error(
+                    'Raised {2} during connection attempting to {0}:{1}.'.
+                    format(self.host, self.port, cfe)
+                )
+
+        if result is not None and result.alive():
+
             self._database = result[self.db]
 
             if (self.user, self.pwd) != (None, None):
 
-                authenticate = self._database.authenticate(self.user, self.pwd)
+                authenticate = self._database.authenticate(
+                    self.user, self.pwd
+                )
 
                 if authenticate:
                     self.logger.debug(
@@ -137,7 +167,8 @@ class MongoDataBase(DataBase):
             self._conn.close()
             self._conn = None
 
-    def connected(self, *args, **kwargs):
+    @property
+    def connected(self):
 
         result = self._conn is not None and self._conn.alive()
 
@@ -200,6 +231,18 @@ class MongoStorage(MongoDataBase, Storage):
 
     ID = '_id'  #: ID mongo
 
+    @property
+    def isdirty(self):
+
+        result = MongoDataBase.isdirty.fget(self)
+
+        if not result:
+
+            table = self.get_table()
+            result = self._backend.name != table
+
+        return result
+
     def _connect(self, *args, **kwargs):
 
         result = super(MongoStorage, self)._connect(*args, **kwargs)
@@ -209,6 +252,7 @@ class MongoStorage(MongoDataBase, Storage):
             self._cache = None
 
         if result:
+
             table = self.get_table()
             self._backend = self._database[table]
 

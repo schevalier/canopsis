@@ -118,8 +118,7 @@ class MiddlewareRegistry(ConfigurableRegistry):
     def get_middleware(
             self,
             protocol, data_type=None, data_scope=None,
-            auto_connect=None,
-            shared=None, sharing_scope=None,
+            auto_connect=None, shared=None, sharing_scope=None,
             *args, **kwargs
     ):
         """
@@ -183,7 +182,7 @@ class MiddlewareRegistry(ConfigurableRegistry):
                     )
                 )
 
-            except Exception as e:
+            except Exception:
                 # clean memory in case of error
                 if not data_scopes:
                     del data_types[data_type]
@@ -191,8 +190,8 @@ class MiddlewareRegistry(ConfigurableRegistry):
                     del protocols[protocol]
                 if not protocols:
                     del MiddlewareRegistry.__MIDDLEWARES__[sharing_scope]
-                # and raise back e
-                raise e
+                # and raise exception
+                raise
 
         else:
             # get a new middleware instance
@@ -206,11 +205,7 @@ class MiddlewareRegistry(ConfigurableRegistry):
 
         return result
 
-    def get_middleware_by_uri(
-        self,
-        uri,
-        auto_connect=None, shared=None, sharing_scope=None, *args, **kwargs
-    ):
+    def get_middleware_by_uri(self, uri, *args, **kwargs):
 
         """
         Load a middleware related to input uri.
@@ -221,16 +216,6 @@ class MiddlewareRegistry(ConfigurableRegistry):
         :param uri: middleware uri
         :type uri: str
 
-        :param auto_connect: middleware auto_connect parameter
-        :type auto_connect: bool
-
-        :param shared: if True, the result is a shared middleware instance
-            among managers of the same class. If None, use self.shared.
-        :type shared: bool
-
-        :param sharing_scope: scope sharing
-        :type sharing_scope: bool
-
         :return: middleware instance corresponding to the input uri.
         :rtype: Middleware
         """
@@ -239,8 +224,8 @@ class MiddlewareRegistry(ConfigurableRegistry):
 
         result = self.get_middleware(
             protocol=protocol, data_type=data_type, data_scope=data_scope,
-            auto_connect=auto_connect, shared=shared,
-            sharing_scope=sharing_scope, uri=uri, *args, **kwargs)
+            uri=uri, *args, **kwargs
+        )
 
         return result
 
@@ -273,7 +258,8 @@ class MiddlewareRegistry(ConfigurableRegistry):
     def _configure(self, unified_conf, *args, **kwargs):
 
         super(MiddlewareRegistry, self)._configure(
-            unified_conf=unified_conf, *args, **kwargs)
+            unified_conf=unified_conf, *args, **kwargs
+        )
 
         foreigns = unified_conf[Configuration.FOREIGNS]
 
@@ -286,7 +272,8 @@ class MiddlewareRegistry(ConfigurableRegistry):
                 name = parameter.name[:-len_midl_suffix]
                 # set a middleware in list of configurables
                 self[name] = self.get_middleware_by_uri(
-                    uri=parameter.value)
+                    uri=parameter.value, auto_connect=False
+                )
 
     def _is_local(self, to_configure, name, *args, **kwargs):
 
@@ -298,3 +285,15 @@ class MiddlewareRegistry(ConfigurableRegistry):
             result = name.endswith(MiddlewareRegistry.MIDDLEWARE_SUFFIX)
 
         return result
+
+    def apply_configuration(self, *args, **kwargs):
+
+        super(MiddlewareRegistry, self).apply_configuration(*args, **kwargs)
+
+        if self.auto_connect:
+
+            for middleware in self._configurables.values():
+
+                if isinstance(middleware, Middleware):
+
+                    middleware.connect()

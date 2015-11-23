@@ -36,8 +36,8 @@ class MongoTimedStorage(MongoStorage, TimedStorage):
         [(Key.DATA_ID, MongoStorage.ASC), (Key.TIMESTAMP, MongoStorage.DESC)]
 
     def get(
-        self, data_ids, timewindow=None, limit=0, skip=0, sort=None,
-        *args, **kwargs
+            self, data_ids, timewindow=None, limit=0, skip=0, sort=None,
+            *args, **kwargs
     ):
 
         result = {}
@@ -49,6 +49,7 @@ class MongoTimedStorage(MongoStorage, TimedStorage):
 
         if isiterable(data_ids, is_str=False):
             where[MongoTimedStorage.Key.DATA_ID] = {'$in': data_ids}
+
         else:
             where[MongoTimedStorage.Key.DATA_ID] = data_ids
             one_element = True
@@ -58,7 +59,8 @@ class MongoTimedStorage(MongoStorage, TimedStorage):
         if timewindow is not None:
             timestamp = timewindow.stop()
             where[MongoTimedStorage.Key.TIMESTAMP] = {
-                '$lte': timewindow.stop()}
+                '$lte': timewindow.stop()
+            }
 
         # do the query
         cursor = self._find(document=where)
@@ -67,8 +69,10 @@ class MongoTimedStorage(MongoStorage, TimedStorage):
         # document respectively before now or before the one point
         if limit:
             cursor.limit(limit)
+
         if skip:
             cursor.skip(skip)
+
         if sort is not None:
             sort = MongoStorage._resolve_sort(sort)
             cursor.sort(sort)

@@ -62,9 +62,7 @@ class MetaConfigurable(type):
 
 
 class ConfigurableError(Exception):
-    """
-    Handle Configurable errors
-    """
+    """Handle Configurable errors."""
 
 
 class Configurable(object):

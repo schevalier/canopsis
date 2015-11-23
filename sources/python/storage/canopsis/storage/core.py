@@ -235,9 +235,7 @@ class Storage(DataBase):
     DESC = -1  #: DESC order
 
     class StorageError(Exception):
-        """
-        Handle Storage errors
-        """
+        """Handle Storage errors"""
 
     def __init__(
             self,
@@ -404,9 +402,7 @@ class Storage(DataBase):
         return self._cache_count
 
     def _init_cache(self):
-        """
-        Initialize cache processing.
-        """
+        """Initialize cache processing."""
 
         # if cache size exists
         if self._cache_size > 0:
@@ -429,9 +425,7 @@ class Storage(DataBase):
             self._cache = None
 
     def _new_cache(self):
-        """
-        Get self cache for query.
-        """
+        """Get self cache for query."""
 
         raise NotImplementedError()
 
@@ -491,9 +485,7 @@ class Storage(DataBase):
         return result
 
     def _cache_async_execution(self):
-        """
-        Threaded method which execute the cache.
-        """
+        """Threaded method which execute the cache."""
 
         # while parent thread is alive and cache size is greater than 0
         while (
@@ -536,9 +528,7 @@ class Storage(DataBase):
         self._cache_autocommit = cache_autocommit
 
     def execute_cache(self):
-        """
-        Execute the query cache and return execution processing.
-        """
+        """Execute the query cache and return execution processing."""
 
         result = None
         # do something only if there are cached query to execute
@@ -557,9 +547,7 @@ class Storage(DataBase):
         return result
 
     def _execute_cache(self):
-        """
-        Private cache execution. May be overriden.
-        """
+        """Private cache execution. May be overriden."""
 
         raise NotImplementedError()
 
@@ -637,9 +625,7 @@ class Storage(DataBase):
         raise NotImplementedError()
 
     def __getitem__(self, ids):
-        """
-        Python shortcut to the get_elements(ids) method.
-        """
+        """Python shortcut to the get_elements(ids) method."""
 
         result = self.get_elements(ids=ids)
 
@@ -649,9 +635,7 @@ class Storage(DataBase):
         return result
 
     def __contains__(self, ids):
-        """
-        Python shortcut to the get_elements(ids) method.
-        """
+        """Python shortcut to the get_elements(ids) method."""
 
         result = True
 
@@ -712,15 +696,12 @@ class Storage(DataBase):
         raise NotImplementedError()
 
     def __delitem__(self, ids):
-        """
-        Python shortcut to the remove_elements method.
-        """
+        """Python shortcut to the remove_elements method."""
 
         return self.remove_elements(ids=ids)
 
     def __isub__(self, ids):
-        """Python shortcut to the remove_elements method.
-        """
+        """Python shortcut to the remove_elements method."""
 
         self.remove_elements(ids=ids)
 
@@ -738,15 +719,12 @@ class Storage(DataBase):
         raise NotImplementedError()
 
     def __setitem__(self, _id, element):
-        """
-        Python shortcut for the put_element method.
-        """
+        """Python shortcut for the put_element method."""
 
         self.put_element(_id=_id, element=element)
 
     def __iadd__(self, element):
-        """Python shortcut for the put_element method.
-        """
+        """Python shortcut for the put_element method."""
 
         self.put_element(element=element)
 
@@ -766,14 +744,12 @@ class Storage(DataBase):
         return result
 
     def __len__(self):
-        """Python shortcut to the count_elements method.
-        """
+        """Python shortcut to the count_elements method."""
 
         return self.count_elements()
 
     def _find(self, *args, **kwargs):
-        """Find operation dedicated to technology implementation.
-        """
+        """Find operation dedicated to technology implementation."""
 
         raise NotImplementedError()
 
@@ -802,8 +778,7 @@ class Storage(DataBase):
         raise NotImplementedError()
 
     def _count(self, *args, **kwargs):
-        """Count operation dedicated to technology implementation.
-        """
+        """Count operation dedicated to technology implementation."""
 
         raise NotImplementedError()
 
@@ -879,14 +854,12 @@ Storage types must be of the same type.'.format(self, target))
         raise NotImplementedError()
 
     def _element_id(self, element):
-        """Get element id related to self behavior
-        """
+        """Get element id related to self behavior."""
 
         raise NotImplementedError()
 
     def _get_category(self, *args, **kwargs):
-        """Get configuration category for self storage.
-        """
+        """Get configuration category for self storage."""
 
         prefix = self.data_type
 
@@ -990,20 +963,17 @@ class Cursor(object):
 
     @property
     def cursor(self):
-        """Get technology implementation cursor.
-        """
+        """Get technology implementation cursor."""
 
         return self._cursor
 
     def __len__(self):
-        """Get number of cursor items.
-        """
+        """Get number of cursor items."""
 
         raise NotImplementedError()
 
     def __iter__(self):
-        """Iterate on cursor items.
-        """
+        """Iterate on cursor items."""
 
         raise NotImplementedError()
 
@@ -1013,4 +983,5 @@ class Cursor(object):
         :param index: An integer or slice index to be applied to this cursor.
         :type index: int or slice
         """
+
         raise NotImplementedError()

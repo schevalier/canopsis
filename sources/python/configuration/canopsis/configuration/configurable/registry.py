@@ -68,7 +68,8 @@ class Configurables(dict):
 
         # get configurable type. Configurable by default
         configurable_type = self.registry._configurable_types.get(
-            name, Configurable)
+            name, Configurable
+        )
 
         configurable = value
 
@@ -79,9 +80,10 @@ class Configurables(dict):
 
         # if configurable is a class
         if isclass(configurable) and issubclass(
-                configurable, configurable_type):
-                # instantiate a new configurable with input args and kwargs
-                configurable = configurable()
+                configurable, configurable_type
+        ):
+            # instantiate a new configurable with input args and kwargs
+            configurable = configurable()
 
         # do nothing if configurable is not an instance of configurable_type
         if not isinstance(configurable, configurable_type):
@@ -187,7 +189,7 @@ class ConfigurableRegistry(Configurable):
     CONFIGURABLE_TYPE_SUFFIX = '_type'  #: type config suffix
 
     def __init__(
-        self, configurables=None, configurable_types=None, *args, **kwargs
+            self, configurables=None, configurable_types=None, *args, **kwargs
     ):
         """
         :param configurables: dictionary of configurables by name.
@@ -202,7 +204,7 @@ class ConfigurableRegistry(Configurable):
         self._configurables = Configurables(self, configurables)
         self._configurable_types = ConfigurableTypes(self, configurable_types)
 
-    def _get_category(self):
+    def _get_category(_):
         """Get category.
 
         :rtype: Category
@@ -231,9 +233,9 @@ class ConfigurableRegistry(Configurable):
         return result
 
     def apply_configuration(
-        self,
-        conf=None, conf_paths=None, drivers=None, logger=None, override=True,
-        *args, **kwargs
+            self,
+            conf=None, conf_paths=None, drivers=None, logger=None,
+            override=True, *args, **kwargs
     ):
 
         super(ConfigurableRegistry, self).apply_configuration(
@@ -326,22 +328,19 @@ class ConfigurableRegistry(Configurable):
 
     @property
     def configurables(self):
-        """Configurable which manages sub-configurables.
-        """
+        """Configurable which manages sub-configurables."""
 
         return self._configurables
 
     @property
     def configurable_types(self):
         """ConfigurableTypes which manages restriction of sub-configurable
-        types.
-        """
+        types."""
 
         return self._configurable_types
 
     def __contains__(self, name):
-        """Redirection to self.configurables.__contains__.
-        """
+        """Redirection to self.configurables.__contains__."""
 
         if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
             return name in self._configurable_types
@@ -349,8 +348,7 @@ class ConfigurableRegistry(Configurable):
         return name in self._configurables
 
     def __getitem__(self, name):
-        """Redirection to self.configurables.__getitem__.
-        """
+        """Redirection to self.configurables.__getitem__."""
 
         if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
             return self._configurables_types[name]
@@ -358,8 +356,7 @@ class ConfigurableRegistry(Configurable):
         return self._configurables[name]
 
     def __setitem__(self, name, value):
-        """Redirection to self.configurables.__setitem__.
-        """
+        """Redirection to self.configurables.__setitem__."""
 
         if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
             self._configurables_types[name] = value
@@ -368,8 +365,7 @@ class ConfigurableRegistry(Configurable):
             self._configurables[name] = value
 
     def __delitem__(self, name):
-        """Redirection to self.configurables.__delitem__.
-        """
+        """Redirection to self.configurables.__delitem__."""
 
         if name.endswith(ConfigurableRegistry.CONFIGURABLE_TYPE_SUFFIX):
             del self._configurables_types[name]
@@ -378,14 +374,13 @@ class ConfigurableRegistry(Configurable):
             del self._configurables[name]
 
     def __iter__(self):
-        """Redirection to iter(self.configurables).
-        """
+        """Redirection to iter(self.configurables)."""
+
         return iter(self._configurables)
 
     @staticmethod
     def get_configurable_category(name):
-        """Get generated sub-configurable category name.
-        """
+        """Get generated sub-configurable category name."""
 
         return "{0}_CONF".format(name.upper())
 

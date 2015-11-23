@@ -19,6 +19,7 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+from canopsis.common.utils import singleton_per_scope
 from canopsis.old.record import Record
 from canopsis.event import get_routingkey, forger
 from canopsis.old.cfilter import Filter
@@ -85,8 +86,8 @@ class Selector(Record):
         }
 
         self.logger = getLogger('Selector')
-        self.context = Context()
-        self.pbehavior = PBehaviorManager()
+        self.context = singleton_per_scope(Context
+        self.pbehavior = singleton_per_scope(PBehaviorManager)
         # Canopsis filter management for mongo
         self.cfilter = Filter()
 

@@ -66,19 +66,22 @@ class Context(MiddlewareRegistry):
     ENTITY = Event.ENTITY  #: entity id in event
 
     def __init__(
-        self, context=DEFAULT_CONTEXT, ctx_storage=None, *args, **kwargs
+            self, context=None, ctx_storage=None, *args, **kwargs
     ):
 
-        super(Context, self).__init__(self, *args, **kwargs)
+        super(Context, self).__init__(*args, **kwargs)
+
+        if context is None:
+            context = list(Context.DEFAULT_CONTEXT)
 
         self._context = context
+
         if ctx_storage is not None:
             self[Context.CTX_STORAGE] = ctx_storage
 
     @property
     def context(self):
-        """List of context element name.
-        """
+        """List of context element name."""
 
         return self._context
 
@@ -97,8 +100,7 @@ class Context(MiddlewareRegistry):
         return self[Context.CTX_STORAGE].get_elements(ids=ids)
 
     def iter_ids(self):
-        """Returns a cursor on all context ids.
-        """
+        """Returns a cursor on all context ids."""
 
         cursor = self[Context.CTX_STORAGE].get_elements(projection={
             Context.DATA_ID: True
@@ -108,8 +110,7 @@ class Context(MiddlewareRegistry):
             yield doc[Context.DATA_ID]
 
     def clean(self, entity):
-        """Remove entity properties which are not in self.context
-        """
+        """Remove entity properties which are not in self.context."""
 
         result = {}
 
@@ -150,7 +151,7 @@ class Context(MiddlewareRegistry):
         return children
 
     def get_entity(
-        self, event, from_db=False, create_if_not_exists=False, cache=False
+            self, event, from_db=False, create_if_not_exists=False, cache=False
     ):
         """Get event entity.
 
@@ -199,12 +200,14 @@ class Context(MiddlewareRegistry):
 
         if from_db:
             result = self.get(_type=_type, names=name, context=ctx)
+
             # if entity does not exists, create it if specified
             if result is None and create_if_not_exists:
                 result = {Context.NAME: name}
                 self.put(_type=_type, entity=result, context=ctx, cache=cache)
                 result.update(ctx)
                 result[Context.TYPE] = _type
+
         else:
             result = ctx.copy()
             result[Context.NAME] = name
@@ -278,8 +281,8 @@ class Context(MiddlewareRegistry):
         return result
 
     def get_by_id(
-        self,
-        ids=None, limit=0, skip=0, sort=None, with_count=False
+            self,
+            ids=None, limit=0, skip=0, sort=None, with_count=False
     ):
         """
         Get a list of entities where id are input ids.
@@ -339,8 +342,8 @@ class Context(MiddlewareRegistry):
         return result
 
     def find(
-        self, _type=None, context=None, _filter=None, extended=False,
-        limit=0, skip=0, sort=None, with_count=False
+            self, _type=None, context=None, _filter=None, extended=False,
+            limit=0, skip=0, sort=None, with_count=False
     ):
         """
         Find all entities which of input _type and context with an additional
@@ -365,9 +368,9 @@ class Context(MiddlewareRegistry):
         return result
 
     def put(
-        self,
-        _type, entity, context=None, extended_id=None, add_parents=True,
-        cache=False
+            self,
+            _type, entity, context=None, extended_id=None, add_parents=True,
+            cache=False
     ):
         """
         Put an entity designated by the _type, context and entity.
@@ -446,7 +449,8 @@ class Context(MiddlewareRegistry):
             )
 
     def remove(
-        self, ids=None, _type=None, context=None, extended=False, cache=False
+            self,
+            ids=None, _type=None, context=None, extended=False, cache=False
     ):
         """
         Remove a set of elements identified by element_ids, an element type or
@@ -511,9 +515,7 @@ class Context(MiddlewareRegistry):
         return result
 
     def get_entity_id_context_name(self, entity):
-        """
-        Get the right id, context and name of input entity.
-        """
+        """Get the right id, context and name of input entity."""
 
         path, name = self.get_entity_context_and_name(entity=entity)
 
@@ -536,7 +538,8 @@ class Context(MiddlewareRegistry):
     def _configure(self, unified_conf, *args, **kwargs):
 
         super(Context, self)._configure(
-            unified_conf=unified_conf, *args, **kwargs)
+            unified_conf=unified_conf, *args, **kwargs
+        )
 
         if Context.CTX_STORAGE in self:
             self[Context.CTX_STORAGE].path = self.context
