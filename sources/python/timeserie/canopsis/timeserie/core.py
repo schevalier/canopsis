@@ -197,15 +197,18 @@ class TimeSerie(Configurable):
         if not meta:
             meta = {}
 
-        transform_method = meta.get('value', {}).get('type', None)
+        transform_method = meta.get('value', {}).get('type')
         points = self.apply_transform(points, method=transform_method)
         points_len = len(points)
 
         fn = None
 
         # if no period and max_points > len(points)
-        if (not points) or self.period is None\
-                and self.max_points > points_len:
+        if (
+            (not points) or (
+                self.period is None and self.max_points > points_len
+            )
+        ):
             result = points  # result is points
 
         else:  # else get the right aggregation function
