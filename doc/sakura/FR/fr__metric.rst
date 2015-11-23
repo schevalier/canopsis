@@ -7,7 +7,7 @@ Metric
 This document presents metric functional requirements in Canopsis.
 
 .. contents::
-   :depth: 2
+   :depth: 4
 
 ----------
 References
@@ -36,20 +36,23 @@ Contents
 Description
 ===========
 
-In Canopsis, a metric denotes an entity_ numerical activity evolution.
+In Canopsis, a metric denotes an entity_ numerical activity evolution. For example, `RAM quantity` is a metric of a computer.
 
-It uses a unique name per entity_ and is composed of two type of values:
+It uses a unique name per entity_ and is composed of two types of values:
 
-- timed values: time serie such as a set of numerical value by timestamp (one value by timestamp), also named perfdata.
-- periodical values: named property values which cover a timed interval. For example, a unit, a threshold, etc.
+- ponctual values: float value by a timestamp, also named perfdata. For example, `9` can correspond to a RAM consumption quantity.
+- periodical values: named property values which cover a time interval. For example, a unit (GB, KM, etc.), a threshold, etc.
 
 Functionalities
 ===============
 
-Such as an hypervision solution, Canopsis is a metric statistical analysis tool from fined grained to large scale requirements.
+Such as an hypervision solution, Canopsis is a metric statistical analysis tool from fined grained to large scale perfdata requirements.
+
+Access to metrics
+-----------------
 
 Feeding
--------
+~~~~~~~
 
 Feeding the system system **MUST** be possible both unitary/fewly and massively.
 
@@ -59,7 +62,7 @@ Feeding the system system **MUST** be possible both unitary/fewly and massively.
 Timestamp values are not a decisive to the system feeding. It **MUST** be possible to feed the system with past, present and future perfdata.
 
 Retrieving
-----------
+~~~~~~~~~~
 
 Retrieving metrics from the system is possible thanks to:
 
@@ -71,9 +74,9 @@ Retrieving metrics from the system is possible thanks to:
 The result might be data or a simple textual format for opened file exporting.
 
 Deleting
---------
+~~~~~~~~
 
-Deleting metric is possible in giving:
+Deleting metrics is possible in giving:
 
 - a timed interval. If not given, all entity_ metric values with corresponding name will be removed.
 - an entity_.
@@ -189,8 +192,8 @@ From the event pool, published alerts are visible:
 
 .. image:: ../_static/images/metric/baseline_maj.png
 
-Forecast
---------
+Forecasting
+-----------
 
 Calculus
 ~~~~~~~~
