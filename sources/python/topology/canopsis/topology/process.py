@@ -108,9 +108,9 @@ def event_processing(
             entity = ctx.get_entity(event)
             if entity is not None:
                 entity_id = ctx.get_entity_id(entity)
-                logger.debug("entity_id {0}".format(entity_id))
+                logger.debug(u"entity_id {0}".format(entity_id))
                 elts = tm.get_elts(info={TopoNode.ENTITY: entity_id})
-                logger.debug("elts {0}".format(elts))
+                logger.debug(u"elts {0}".format(elts))
                 # process all elts
                 for elt in elts:
                     elt.process(

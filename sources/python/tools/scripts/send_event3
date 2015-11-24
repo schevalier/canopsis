@@ -166,17 +166,17 @@ def main(argv):
         event['connector_name'] = 'Send_event'
 
     #-----------------------------send event-----------------------------
-    clean_event = {}
-    for k, v in event.items():
-        clean_event[k] = str(v).encode('utf-8')
+    request_params = {'event': json.dumps(event)}
+
 
     request = urllib.request.Request(
-        'http://%s/event/' % server,
-        urllib.parse.urlencode(clean_event).encode('ascii'))
+        'http://{}/event/'.format(server),
+        urllib.parse.urlencode(request_params).encode('utf-8'))
+
     r = opener.open(request)
     print('Webserver replied :')
-    print((r.read()))
-
+    result = json.loads(r.read().decode('utf-8'))
+    print(json.dumps(result, indent=4))
 
 if __name__ == "__main__":
     try:
