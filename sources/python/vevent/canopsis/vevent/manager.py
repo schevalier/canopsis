@@ -18,6 +18,9 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+"""
+"""
+
 from canopsis.common.init import basestring
 from canopsis.configuration.configurable.decorator import (
     conf_paths, add_category
@@ -107,9 +110,9 @@ class VEventManager(MiddlewareRegistry):
 
     @staticmethod
     def get_document(
-        uid=None, source=None,
-        duration=0, rrule=None, dtstart=0, dtend=MAXTS,
-        **kwargs
+            uid=None, source=None,
+            duration=0, rrule=None, dtstart=0, dtend=MAXTS,
+            **kwargs
     ):
         """Get a document related to input values.
         """
@@ -168,8 +171,8 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     def get_by_uids(
-        self, uids,
-        limit=0, skip=0, sort=None, projection=None, with_count=False
+            self, uids,
+            limit=0, skip=0, sort=None, projection=None, with_count=False
     ):
         """Get documents by uids.
 
@@ -200,8 +203,8 @@ class VEventManager(MiddlewareRegistry):
         return result
 
     def values(
-        self, sources=None, dtstart=None, dtend=None, query=None,
-        limit=0, skip=0, sort=None, projection=None, with_count=False
+            self, sources=None, dtstart=None, dtend=None, query=None,
+            limit=0, skip=0, sort=None, projection=None, with_count=False
     ):
         """Get source vevent document values.
 
@@ -288,7 +291,7 @@ class VEventManager(MiddlewareRegistry):
 
             document = None
 
-            if isinstance(vevent, dict):
+            if isinstance(vevent, dict) and not isinstance(vevent, Event):
 
                 document = vevent
                 # get uid
@@ -312,16 +315,26 @@ class VEventManager(MiddlewareRegistry):
                 # ensure vevent is an ical format
                 if isinstance(vevent, basestring):
                     vevent = Event.from_ical(vevent)
+
                 # prepare the document with specific properties
                 document = self._get_vevent_properties(vevent=vevent)
+
                 # get dtstart
-                dtstart = vevent.get(VEventManager.DTSTART, 0)
-                if isinstance(dtstart, datetime):
+                try:
+                    dtstart = vevent.decoded(VEventManager.DTSTART)
+                except KeyError:
+                    dtstart = 0
+                else:
                     dtstart = timegm(dtstart.timetuple())
+
                 # get dtend
-                dtend = vevent.get(VEventManager.DTEND, 0)
-                if isinstance(dtend, datetime):
+                try:
+                    dtend = vevent.decoded(VEventManager.DTEND)
+                except KeyError:
+                    dtend = 0
+                else:
                     dtend = timegm(dtend.timetuple())
+
                 # get rrule
                 rrule = vevent.get(VEventManager.RRULE)
                 if rrule is not None:
@@ -330,17 +343,24 @@ class VEventManager(MiddlewareRegistry):
                         rrule_value = rrule[rrule_key]
                         _rrule += "{0}={1};".format(rrule_key, rrule_value)
                     rrule = _rrule
+
                 # get duration
-                duration = vevent.get(VEventManager.DURATION)
-                if duration:
+                try:
+                    duration = vevent.decoded(VEventManager.DURATION)
+                except KeyError:
+                    duration = 0
+                else:
                     duration = duration.total_seconds()
+
                 # get uid
                 uid = vevent.get(VEventManager.UID)
                 if not uid:
                     uid = str(uuid())
+
                 # get source
                 if not source:
                     source = vevent.get(VEventManager.SOURCE_TYPE)
+
                 # prepare the document
                 document.update({
                     VEventManager.UID: uid,
@@ -351,21 +371,15 @@ class VEventManager(MiddlewareRegistry):
                     VEventManager.RRULE: rrule
                 })
 
-            self._update_element(element=document)
-
             self[VEventManager.STORAGE].put_element(
-                _id=uid, element=document
+                _id=uid, element=document, cache=cache
             )
-            self.logger.info('document', document)
+
             document['_id'] = uid
 
             result.append(document)
 
         return result
-
-    def _update_element(self, element):
-        """ Update or format an element before to put it on database
-        """
 
     def remove(self, uids=None, query=None, cache=False):
         """Remove elements from storage where uids are given.
