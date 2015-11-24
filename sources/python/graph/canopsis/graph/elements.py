@@ -120,8 +120,7 @@ class GraphElement(object):
     """
 
     class Error(Exception):
-        """Handle GraphElement errors.
-        """
+        """Handle GraphElement errors."""
 
     ID = Storage.DATA_ID  #: graph element id.
     TYPE = 'type'  #: graph element type name.
