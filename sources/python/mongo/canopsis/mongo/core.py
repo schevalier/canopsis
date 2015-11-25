@@ -92,7 +92,7 @@ class MongoDataBase(DataBase):
 
     def _connect(self, *args, **kwargs):
 
-        result = DataBase.PROCESS_CONN
+        result = MongoDataBase.PROCESS_CONN
 
         if result is None or not result.alive():
 
