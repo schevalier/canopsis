@@ -32,6 +32,8 @@ from pymongo.read_preferences import ReadPreference
 from pymongo.son_manipulator import SONManipulator
 from uuid import uuid1
 
+from pymongo.mongo_replica_set_client import MongoReplicaSetClient
+
 
 class CanopsisSONManipulator(SONManipulator):
     """
@@ -58,6 +60,8 @@ class MongoDataBase(DataBase):
     """
     Manage access to a mongodb.
     """
+
+    PROCESS_CONN = None  #: processus connection.
 
     def __init__(
             self, host=MongoClient.HOST, port=MongoClient.PORT,
@@ -88,43 +92,50 @@ class MongoDataBase(DataBase):
 
     def _connect(self, *args, **kwargs):
 
-        result = None
+        result = DataBase.PROCESS_CONN
 
-        connection_args = {}
+        if result is None or not result.alive():
 
-        # if self host is given
-        if self.host:
-            connection_args['host'] = self.host
-        # if self port is given
-        if self.port:
-            connection_args['port'] = self.port
-        # if self replica set is given
-        if self.replicaset:
-            connection_args['replicaSet'] = self.replicaset
-            connection_args['read_preference'] = self.read_preference
+            connection_args = {}
 
-        connection_args['j'] = self.journaling
-        connection_args['w'] = 1 if self.safe else 0
+            conncls = MongoClient
 
-        if self.ssl:
-            connection_args.update(
-                {
-                    'ssl': self.ssl,
-                    'ssl_keyfile': self.ssl_key,
-                    'ssl_certfile': self.ssl_cert
-                }
-            )
+            # if self host is given
+            if self.host:
+                connection_args['host'] = self.host
+            # if self port is given
+            if self.port:
+                connection_args['port'] = self.port
+            # if self replica set is given
+            if self.replicaset:
+                conncls = MongoReplicaSetClient
+                connection_args['replicaSet'] = self.replicaset
+                connection_args['read_preference'] = self.read_preference
 
-        self.logger.debug('Trying to connect to {0}'.format(connection_args))
+            connection_args['j'] = self.journaling
+            connection_args['w'] = 1 if self.safe else 0
 
-        try:
-            result = MongoClient(**connection_args)
-        except ConnectionFailure as cfe:
-            self.logger.error(
-                'Raised {2} during connection attempting to {0}:{1}.'.
-                format(self.host, self.port, cfe)
-            )
-        else:
+            if self.ssl:
+                connection_args.update(
+                    {
+                        'ssl': self.ssl,
+                        'ssl_keyfile': self.ssl_key,
+                        'ssl_certfile': self.ssl_cert
+                    }
+                )
+
+            self.logger.debug('Trying to connect to {0}'.format(connection_args))
+
+            try:
+                MongoDataBase.PROCESS_CONN = result = conncls(**connection_args)
+            except ConnectionFailure as cfe:
+                self.logger.error(
+                    'Raised {2} during connection attempting to {0}:{1}.'.
+                    format(self.host, self.port, cfe)
+                )
+
+        if result.alive():
+
             self._database = result[self.db]
 
             if (self.user, self.pwd) != (None, None):
