@@ -23,8 +23,7 @@ from time import time
 from canopsis.old.storage import get_storage
 from canopsis.old.account import Account
 from canopsis.old.record import Record
-from canopsis.old.rabbitmq import Amqp
-from canopsis.event import get_routingkey
+from canopsis.old.rabbitmq import Amqp, get_routingkey
 
 from canopsis.old.rabbitmq import publish
 from canopsis.configuration.configurable import Configurable

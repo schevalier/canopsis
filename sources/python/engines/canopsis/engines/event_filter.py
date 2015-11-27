@@ -19,11 +19,11 @@
 # ---------------------------------
 
 from canopsis.engines.core import Engine, DROP
-from canopsis.old.rabbitmq import publish
+from canopsis.old.rabbitmq import publish, get_routingkey
 
 from canopsis.old.account import Account
 from canopsis.old.storage import get_storage
-from canopsis.event import forger, get_routingkey
+from canopsis.event import forger
 from canopsis.old.mfilter import check
 
 import json

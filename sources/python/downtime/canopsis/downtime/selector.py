@@ -20,7 +20,8 @@
 
 from canopsis.common.utils import singleton_per_scope
 from canopsis.old.record import Record
-from canopsis.event import get_routingkey, forger
+from canopsis.event import forger
+from canopsis.old.rabbitmq import get_routingkey
 from canopsis.old.cfilter import Filter
 from canopsis.common.utils import singleton_per_scope
 

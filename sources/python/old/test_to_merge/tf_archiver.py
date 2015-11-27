@@ -25,8 +25,7 @@ from os.path import join
 
 from canopsis.old.storage import get_storage
 from canopsis.old.account import Account
-from canopsis.event import get_routingkey
-from canopsis.old.rabbitmq import Amqp
+from canopsis.old.rabbitmq import Amqp, get_routingkey
 from canopsis.old.record import Record
 
 import logging

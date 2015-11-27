@@ -32,8 +32,7 @@ install_requires = [
     'canopsis.context',
     'canopsis.check',
     'canopsis.configuration',
-    'canopsis.event'
-    'canopsis.common',
+    'canopsis.event',
     'canopsis.ctxprop',
 ]
 

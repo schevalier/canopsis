@@ -19,12 +19,11 @@
 # ---------------------------------
 
 from canopsis.engines.core import Engine
-from canopsis.old.rabbitmq import publish
+from canopsis.old.rabbitmq import publish, get_routingkey
 from canopsis.old.storage import get_storage
 from canopsis.old.account import Account
 from canopsis.downtime.selector import Selector
 from canopsis.sla import Sla
-from canopsis.event import get_routingkey
 from time import time
 
 
