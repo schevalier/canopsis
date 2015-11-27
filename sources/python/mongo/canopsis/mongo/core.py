@@ -24,7 +24,7 @@ from canopsis.common.utils import isiterable
 from canopsis.configuration.configurable.decorator import (
     add_category, conf_paths
 )
-from canopsis.configuration.parameters import Parameter
+from canopsis.configuration.model import Parameter
 
 from pymongo import MongoClient
 from pymongo.mongo_replica_set_client import MongoReplicaSetClient
@@ -39,9 +39,7 @@ from uuid import uuid1
 
 
 class CanopsisSONManipulator(SONManipulator):
-    """
-    Manage transformations on incoming/outgoing objects.
-    """
+    """Manage transformations on incoming/outgoing objects."""
 
     def __init__(self, idfield, *args, **kwargs):
         super(CanopsisSONManipulator, self).__init__(*args, **kwargs)

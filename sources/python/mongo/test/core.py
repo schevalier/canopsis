@@ -36,11 +36,11 @@ class DataBaseTest(TestCase):
 
     def test_connect(self):
         self.database.connect()
-        self.assertTrue(self.database.connected())
+        self.assertTrue(self.database.connected)
         self.database.disconnect()
-        self.assertFalse(self.database.connected())
+        self.assertFalse(self.database.connected)
         self.database.reconnect()
-        self.assertTrue(self.database.connected())
+        self.assertTrue(self.database.connected)
 
 
 class TestStorage(MongoStorage):
@@ -58,11 +58,11 @@ class StorageTest(TestCase):
         self.storage.drop()
 
     def test_connect(self):
-        self.assertTrue(self.storage.connected())
+        self.assertTrue(self.storage.connected)
         self.storage.disconnect()
-        self.assertFalse(self.storage.connected())
+        self.assertFalse(self.storage.connected)
         self.storage.reconnect()
-        self.assertTrue(self.storage.connected())
+        self.assertTrue(self.storage.connected)
 
     def test_indexes(self):
         indexes = self.storage.all_indexes()

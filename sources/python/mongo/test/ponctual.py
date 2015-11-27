@@ -37,15 +37,15 @@ class PonctualStoreTest(TestCase):
     def test_connect(self):
         """Test connection."""
 
-        self.assertTrue(self.storage.connected())
+        self.assertTrue(self.storage.connected)
 
         self.storage.disconnect()
 
-        self.assertFalse(self.storage.connected())
+        self.assertFalse(self.storage.connected)
 
         self.storage.connect()
 
-        self.assertTrue(self.storage.connected())
+        self.assertTrue(self.storage.connected)
 
     def test_crud(self):
         """Test CRUD."""

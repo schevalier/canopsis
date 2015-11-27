@@ -29,12 +29,10 @@ from canopsis.middleware.core import Middleware
 
 
 class CTXPropRegistry(Middleware):
-    """dedicated to ctx events.
-    """
+    """dedicated to ctx events."""
 
     class Error(Exception):
-        """Handle CTXPropRegistry errors.
-        """
+        """Handle CTXPropRegistry errors."""
 
     CTX_ID = 'ctx_id'  #: default ctx id field name
 

@@ -36,15 +36,15 @@ class MongoCompositeStorageTest(TestCase):
         self.storage = MongoCompositeStorage(data_scope="test", path=self.path)
 
     def test_connect(self):
-        self.assertTrue(self.storage.connected())
+        self.assertTrue(self.storage.connected)
 
         self.storage.disconnect()
 
-        self.assertFalse(self.storage.connected())
+        self.assertFalse(self.storage.connected)
 
         self.storage.connect()
 
-        self.assertTrue(self.storage.connected())
+        self.assertTrue(self.storage.connected)
 
     def test_crud(self):
 

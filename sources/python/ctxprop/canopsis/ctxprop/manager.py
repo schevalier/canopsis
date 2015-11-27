@@ -50,13 +50,10 @@ class CTXPropManager(MiddlewareRegistry):
 
         super(CTXPropManager, self).__init__(*args, **kwargs)
 
-        self.context['context'] = context
+        if context is None:
+            Context = lookup('canopsis.contxt.manager.Context')()
 
-    @property
-    def context(self):
-        """Get self context."""
-
-        return self['context']
+        self.context = context
 
     @property
     def registries(self):

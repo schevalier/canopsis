@@ -347,7 +347,7 @@ class Middleware(Configurable):
             self._host = parsed_url.hostname
             self._port = parsed_url.port
             self._user = parsed_url.username
-            self._password = parsed_url.password
+            self._pwd = parsed_url.password
 
     @property
     def protocol(self):
