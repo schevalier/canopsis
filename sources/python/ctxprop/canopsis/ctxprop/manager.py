@@ -25,12 +25,10 @@ In such way, all methods execution are delegated to its registries.
 """
 
 from canopsis.common.init import basestring
-from canopsis.common.utils import lookup
 from canopsis.configuration.configurable.decorator import (
     conf_paths, add_category
 )
 from canopsis.middleware.registry import MiddlewareRegistry
-from canopsis.common.utils import lookup
 
 
 CONF_PATH = 'ctxprop/ctxprop.conf'
