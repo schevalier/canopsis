@@ -27,7 +27,6 @@ install_requires = [
     'canopsis.middleware',
     'canopsis.timeserie',
     'canopsis.task',
-    'canopsis.engines',
     'canopsis.old'
 ]
 

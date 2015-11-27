@@ -27,6 +27,7 @@ from logging import getLogger
 
 from canopsis.old.storage import get_storage
 from canopsis.old.account import Account
+from canopsis.old.rabbitmq import get_routingkey
 
 
 class Event(object):
@@ -247,17 +248,6 @@ def forger(
         dump.update(kwargs)
 
     return dump
-
-
-def get_routingkey(event):
-    rk = "%s.%s.%s.%s.%s" % (
-        event['connector'], event['connector_name'], event['event_type'],
-        event['source_type'], event['component'])
-
-    if 'resource' in event and event['resource']:
-        rk += ".%s" % event['resource']
-
-    return rk
 
 
 def is_component_problem(event):

@@ -20,7 +20,7 @@
 
 from canopsis.common.utils import singleton_per_scope
 from canopsis.task.core import register_task
-from canopsis.engines.core import publish
+from canopsis.old.rabbitmq import publish
 
 from canopsis.timeserie.timewindow import TimeWindow
 from canopsis.serie.manager import Serie

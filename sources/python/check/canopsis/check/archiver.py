@@ -26,14 +26,11 @@ from canopsis.old.record import Record
 from canopsis.old.rabbitmq import Amqp
 from canopsis.event import get_routingkey
 
-from canopsis.engines.core import publish
+from canopsis.old.rabbitmq import publish
 from canopsis.configuration.configurable import Configurable
 from canopsis.configuration.configurable.decorator import (
     add_category, conf_paths
 )
-
-import pprint
-pp = pprint.PrettyPrinter(indent=2)
 
 from pymongo.errors import BulkWriteError
 
@@ -138,7 +135,7 @@ class Archiver(Configurable):
             try:
                 bulk.execute({'w': 0})
             except BulkWriteError as bwe:
-                self.logger.warning(pp.pformat(bwe.details))
+                self.logger.warning(bwe.details)
             self.logger.info(u'inserted log events {}'.format(len(operations)))
 
     def process_update_operations(self, operations):
@@ -439,7 +436,7 @@ class Archiver(Configurable):
                     self.set_status(event, STEALTHY, devent=devent)
             # Else proceed normally
             else:
-                if (event['state'] == OFF):
+                if event['state'] == OFF:
                     # If still non-alert, can only be OFF
                     if (not self.is_bagot(event)
                             and not self.is_stealthy(event, devent['status'])):
@@ -595,10 +592,10 @@ class Archiver(Configurable):
             # Ack is kept in the current event below
             if event['state'] == 0 and devent.get('state') != 0:
                 for key in (
-                    'ticket_declared_author',
-                    'ticket_declared_date',
-                    'ticket_date',
-                    'ticket'
+                        'ticket_declared_author',
+                        'ticket_declared_date',
+                        'ticket_date',
+                        'ticket'
                 ):
                     change[key] = None
 
@@ -641,9 +638,10 @@ class Archiver(Configurable):
             # Generate diff change from old event to new event
             for key in event:
                 if key not in exclusion_fields:
-                    if (key in event and
-                        key in devent and
-                            devent[key] != event[key]):
+                    if (
+                        key in event and key in devent
+                        and devent[key] != event[key]
+                    ):
                         change[key] = event[key]
                     elif key in event and key not in devent:
                         change[key] = event[key]

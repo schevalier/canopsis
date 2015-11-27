@@ -19,17 +19,19 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+"""task project building script."""
+
 from canopsis.common.setup import setup
 
 install_requires = [
     'canopsis.common',
     'canopsis.configuration',
     'canopsis.middleware',
-    'canopsis.task',
     'canopsis.old'
 ]
 
 setup(
     description='Canopsis task',
     install_requires=install_requires,
-    keywords='task')
+    keywords='task'
+)

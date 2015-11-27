@@ -19,6 +19,8 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+"""configuration project building script."""
+
 from canopsis.common.setup import setup
 
 install_requires = ['canopsis.common']
@@ -26,4 +28,5 @@ install_requires = ['canopsis.common']
 setup(
     description='Canopsis configuration',
     install_requires=install_requires,
-    keywords='configuration')
+    keywords='configuration'
+)

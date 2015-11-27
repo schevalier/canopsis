@@ -18,7 +18,8 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-from canopsis.engines.core import Engine, DROP, publish
+from canopsis.engines.core import Engine, DROP
+from canopsis.old.rabbitmq import publish
 
 from canopsis.old.account import Account
 from canopsis.old.storage import get_storage

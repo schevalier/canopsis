@@ -18,10 +18,11 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-from canopsis.engines.core import Engine, publish
+from canopsis.engines.core import Engine
+from canopsis.old.rabbitmq import publish
 from canopsis.old.storage import get_storage
 from canopsis.old.account import Account
-from canopsis import schema
+from canopsis.schema import validate
 
 from dateutil.rrule import rrulestr
 
@@ -40,7 +41,7 @@ class engine(Engine):
         self.storage = get_storage('object', account=account)
 
     def work(self, job, *args, **kwargs):
-        if schema.validate(job, 'crecord.job'):
+        if validate(job, 'crecord.job'):
             self.do_job(job)
 
         else:
@@ -57,11 +58,11 @@ class engine(Engine):
 
         jobs = self.storage.find({'$and': [
             {'crecord_type': 'job'},
-			{'$or': [
-				{'jtype': {'$exists': False}},
-				{'jtype': None },
-				{'jtype': 'scheduled'}
-			]},
+            {'$or': [
+                {'jtype': {'$exists': False}},
+                {'jtype': None},
+                {'jtype': 'scheduled'}
+            ]},
             {'$or': [
                 {'last_execution': {'$lte': prev}},
                 {'last_execution': None},

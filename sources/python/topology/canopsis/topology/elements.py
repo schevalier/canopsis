@@ -76,7 +76,7 @@ from canopsis.check.manager import CheckManager
 from canopsis.context.manager import Context
 from canopsis.topology.manager import TopologyManager
 from canopsis.graph.event import BaseTaskedVertice
-from canopsis.engines.core import publish
+from canopsis.old.rabbitmq import publish
 from canopsis.common.utils import singleton_per_scope
 
 

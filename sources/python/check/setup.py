@@ -34,4 +34,5 @@ install_requires = [
 setup(
     description='Canopsis check event library',
     install_requires=install_requires,
-    keywords='check event')
+    keywords='check event'
+)
