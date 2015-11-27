@@ -28,8 +28,7 @@ from sys import path
 
 from time import time, sleep
 
-from canopsis.engines.core import publish as _publish
-from canopsis.old.rabbitmq import Amqp
+from canopsis.old.rabbitmq import Amqp, publish as _publish
 
 from canopsis.old.storage import get_storage
 from canopsis.old.account import Account

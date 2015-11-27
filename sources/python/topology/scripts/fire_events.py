@@ -1,6 +1,6 @@
 from canopsis.topology.manager import TopologyManager
 from canopsis.old.rabbitmq import Amqp
-from canopsis.engines.core import publish
+from canopsis.old.rabbitmq import publish
 
 
 def fire_events():

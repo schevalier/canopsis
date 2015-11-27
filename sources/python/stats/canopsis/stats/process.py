@@ -20,7 +20,7 @@
 
 from canopsis.common.utils import singleton_per_scope
 from canopsis.task.core import register_task
-from canopsis.engines.core import publish
+from canopsis.old.rabbitmq import publish
 
 from canopsis.stats.producers.user import UserMetricProducer
 from canopsis.stats.producers.event import EventMetricProducer

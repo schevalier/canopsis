@@ -19,6 +19,7 @@
 # ---------------------------------
 
 from canopsis.engines.core import Engine, publish
+from canopsis.old.rabbitmq import publish
 from canopsis.event import forger
 
 from time import time

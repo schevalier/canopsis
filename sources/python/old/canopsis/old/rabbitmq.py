@@ -70,7 +70,7 @@ class Amqp(Thread):
         self.exchange_name = exchange_name
         self.logging_level = logging_level
 
-        if (read_config_file):
+        if read_config_file:
             self.read_config("amqp")
 
         self.amqp_uri = "amqp://{0}:{1}@{2}:{3}/{4}".format(
@@ -487,3 +487,36 @@ class Amqp(Thread):
 
     def __del__(self):
         self.stop()
+
+
+def get_routingkey(event):
+    rk = "%s.%s.%s.%s.%s" % (
+        event['connector'], event['connector_name'], event['event_type'],
+        event['source_type'], event['component'])
+
+    if 'resource' in event and event['resource']:
+        rk += ".%s" % event['resource']
+
+    return rk
+
+
+def publish(event, publisher, rk=None, exchange=None, logger=None, **kwargs):
+    """Task dedicated to publish an event from an engine.
+
+    :param dict event to send.
+    :param publisher: object in charge of publishing the event. Its method
+        ``publish`` takes three parameters, the ``event``, the ``rk`` related
+        to the event and an ``exchange name``.
+
+    :param str rk: routing key to use. If None, use get_routingkey(event).
+    :param str exchange: exchange name. If None, use
+        ``publisher.exchange_name_events``.
+    """
+
+    if exchange is None:
+        exchange = publisher.exchange_name_events
+
+    if rk is None:
+        rk = get_routingkey(event)
+
+    publisher.publish(event, rk, exchange)

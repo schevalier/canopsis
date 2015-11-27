@@ -37,7 +37,8 @@ except ImportError:
 from canopsis.common.utils import lookup
 from canopsis.middleware.registry import MiddlewareRegistry
 from canopsis.configuration.configurable.decorator import (
-    add_category, conf_paths)
+    add_category, conf_paths
+)
 
 CONF_PATH = 'task/task.conf'
 CATEGORY = 'TASK'

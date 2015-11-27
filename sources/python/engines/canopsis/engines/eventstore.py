@@ -18,7 +18,8 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-from canopsis.engines.core import Engine, publish
+from canopsis.engines.core import Engine
+from canopsis.old.rabbitmq import publish
 from canopsis.check.archiver import Archiver, BAGOT, STEALTHY
 from canopsis.context.manager import Context
 from canopsis.pbehavior.manager import PBehaviorManager

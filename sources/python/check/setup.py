@@ -21,9 +21,17 @@
 
 from canopsis.common.setup import setup
 
-install_requires = ['canopsis.common', 'canopsis.event']
+install_requires = [
+    'canopsis.common',
+    'canopsis.configuration',
+    'canopsis.middleware',
+    'canopsis.event',
+    'canopsus.ctxprop'
+    'canopsis.old',
+]
 
 setup(
     description='Canopsis check event library',
     install_requires=install_requires,
-    keywords='check event')
+    keywords='check event'
+)
