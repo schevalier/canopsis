@@ -26,7 +26,6 @@ install_requires = [
     'canopsis.configuration',
     'canopsis.middleware',
     'canopsis.event',
-    'canopsis.engines'
     'canopsus.ctxprop'
     'canopsis.old',
 ]
