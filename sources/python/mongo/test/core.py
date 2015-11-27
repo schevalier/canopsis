@@ -108,7 +108,7 @@ class StorageTest(TestCase):
 
         self.assertEqual(final_indexes, _indexes)
 
-    def test_CRUD(self):
+    def test_crud(self):
         document = {'a': 'b'}
 
         self.storage.drop()

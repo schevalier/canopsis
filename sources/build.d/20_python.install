@@ -42,7 +42,7 @@ function install_pylib(){
 function build(){
 	BASE="Python-$VERSION"
 	cd $SRC_PATH/externals
-	
+
 	if [ ! -e $BASE ]; then
 		extract_archive "$BASE.tar.xz"
 	fi
@@ -60,9 +60,12 @@ function build(){
 		launch_log $NAME "make clean"
 		check_code $?
 	fi
-	
+
 	echo " + Configure ..."
 	mkdir -p $PREFIX/lib
+#XXX FIXIT
+	cp $SRC_PATH/extra/patches/debian_jessie/Modules._ssl.c Modules/_ssl.c
+	cp $SRC_PATH/extra/patches/debian_jessie/Lib.ssl.py Lib/ssl.py
 
 	launch_log $NAME "./configure --prefix=$PREFIX --enable-shared"
 	check_code $?

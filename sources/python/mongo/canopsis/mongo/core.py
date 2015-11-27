@@ -90,26 +90,26 @@ class MongoDataBase(DataBase):
 
             conncls = MongoReplicaSetClient if self.replicaset else MongoClient
 
-            connection_args = {}
+            conn_args = {}
 
             # if self host is given
             if self.host:
-                connection_args['host'] = self.host
+                conn_args['host'] = self.host
             # if self port is given
             if self.port:
-                connection_args['port'] = self.port
+                conn_args['port'] = self.port
             # if self replica set is given
             if self.replicaset:
-                connection_args['replicaSet'] = self.replicaset
-                connection_args['read_preference'] = self.read_preference
-                connection_args['secondary_acceptable_latency_ms'] = \
+                conn_args['replicaSet'] = self.replicaset
+                conn_args['read_preference'] = self.read_preference
+                conn_args['secondary_acceptable_latency_ms'] = \
                     self.secondary_acceptable_latency_ms
 
-            connection_args['j'] = self.journaling
-            connection_args['w'] = 1 if self.safe else 0
+            conn_args['j'] = self.journaling
+            conn_args['w'] = 1 if self.safe else 0
 
             if self.ssl:
-                connection_args.update(
+                conn_args.update(
                     {
                         'ssl': self.ssl,
                         'ssl_keyfile': self.ssl_key,
@@ -117,10 +117,10 @@ class MongoDataBase(DataBase):
                     }
                 )
 
-            self.logger.debug('Trying to connect to {0}'.format(connection_args))
+            self.logger.debug('Trying to connect to {0}'.format(conn_args))
 
             try:
-                result = MongoDataBase._CONN = conncls(**connection_args)
+                result = MongoDataBase._CONN = conncls(**conn_args)
 
             except ConnectionFailure as cfe:
                 self.logger.error(

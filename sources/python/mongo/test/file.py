@@ -19,8 +19,7 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-"""Test the MongoFileStorage.
-"""
+"""Test the MongoFileStorage."""
 
 from unittest import TestCase, main
 
@@ -30,74 +29,71 @@ from time import sleep
 
 
 class MongoFileStorageTest(TestCase):
-    """Test MongoFileStream.
-    """
+    """Test MongoFileStream."""
+
     def setUp(self):
 
         self.testfile = 'test'
-        self.fs = MongoFileStorage(data_scope=self.testfile)
+        self.mfs = MongoFileStorage(data_scope=self.testfile)
 
     def tearDown(self):
 
-        self.fs.delete()
+        self.mfs.delete()
         sleep(1)
 
     def test_list(self):
-        """Test to list files.
-        """
+        """Test to list files."""
 
         names = set([str(i) for i in range(5)])
 
         for name in names:
-            self.fs.new_file(name=name).close()
+            self.mfs.new_file(name=name).close()
 
-        filenames = set(self.fs.list())
+        filenames = set(self.mfs.list())
 
         self.assertEqual(filenames, names)
 
     def test_notexists(self):
-        """Test if a filestream does not exist.
-        """
+        """Test if a filestream does not exist."""
 
-        exists = self.fs.exists(name=self.testfile)
+        exists = self.mfs.exists(name=self.testfile)
 
         self.assertFalse(exists)
 
-        fs = self.fs.get(name=self.testfile)
+        mfs = self.mfs.get(name=self.testfile)
 
-        self.assertIsNone(fs)
+        self.assertIsNone(mfs)
 
-        fss = list(self.fs.find(names=[self.testfile]))
+        fss = list(self.mfs.find(names=[self.testfile]))
 
         self.assertFalse(fss)
 
-        fss = list(self.fs.find())
+        fss = list(self.mfs.find())
 
         self.assertFalse(fss)
 
     def test_newfile(self):
-        """Test if a filestream does not exist.
-        """
+        """Test if a filestream does not exist."""
 
-        fs = self.fs.new_file(name=self.testfile)
+        mfs = self.mfs.new_file(name=self.testfile)
 
-        exists = self.fs.exists(name=self.testfile)
+        exists = self.mfs.exists(name=self.testfile)
 
         self.assertFalse(exists)
 
-        fs.close()
+        mfs.close()
 
-        exists = self.fs.exists(name=self.testfile)
+        exists = self.mfs.exists(name=self.testfile)
 
         self.assertTrue(exists)
 
-        fs1 = self.fs.get(name=self.testfile)
+        fs1 = self.mfs.get(name=self.testfile)
 
-        self.assertEqual(fs, fs1)
+        self.assertEqual(mfs, fs1)
 
-        self.fs.delete(names=self.testfile)
+        self.mfs.delete(names=self.testfile)
 
-        exists = self.fs.exists(name=self.testfile)
+        exists = self.mfs.exists(name=self.testfile)
 
         self.assertFalse(exists)
 
@@ -108,62 +104,59 @@ class MongoFileStorageTest(TestCase):
         :rtype: canopsis.storage.file.FileStream
         """
 
-        result = self.fs.new_file(name=self.testfile)
+        result = self.mfs.new_file(name=self.testfile)
 
         result.close()
 
         return result
 
     def test_putr(self):
-        """Test to put and read data.
-        """
+        """Test to put and read data."""
 
         if pymongov >= '3':
-            self.fs.put(name=self.testfile, data=self.testfile)
+            self.mfs.put(name=self.testfile, data=self.testfile)
 
-            fs = self.fs.get(name=self.testfile)
+            mfs = self.mfs.get(name=self.testfile)
 
-            data = fs.read(size=2)
+            data = mfs.read(size=2)
 
             self.assertEqual(self.testfile[:2], data)
 
-            data = fs.read(size=-1)
+            data = mfs.read(size=-1)
 
             self.assertEqual(self.testfile[2:], data)
 
     def test_writer(self):
-        """Test to write and read data.
-        """
+        """Test to write and read data."""
 
-        fs = self.fs.new_file(name=self.testfile)
+        mfs = self.mfs.new_file(name=self.testfile)
 
-        fs.write(data=self.testfile)
+        mfs.write(data=self.testfile)
 
-        fs.close()
+        mfs.close()
 
-        fs = self.fs.get(name=self.testfile)
+        mfs = self.mfs.get(name=self.testfile)
 
-        data = fs.read(size=2)
+        data = mfs.read(size=2)
 
         self.assertEqual(self.testfile[:2], data)
 
-        data = fs.read(size=-1)
+        data = mfs.read(size=-1)
 
         self.assertEqual(self.testfile[2:], data)
 
     def test_pos(self):
-        """Test file position only with pymongo3+
-        """
+        """Test file position only with pymongo3+."""
 
         if pymongov >= '3':
 
-            fs = self._create_filestream()
+            mfs = self._create_filestream()
 
-            pos = fs.pos()
+            pos = mfs.pos()
 
             self.assertEqual(pos, 0)
 
-            self.assertRaises(Exception, fs.seek, 2)
+            self.assertRaises(Exception, mfs.seek, 2)
 
 if __name__ == '__main__':
     main()

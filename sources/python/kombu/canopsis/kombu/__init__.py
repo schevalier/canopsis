@@ -19,9 +19,10 @@
 # ---------------------------------
 
 __version__ = "0.1"
+from sys import exit
+exit(0)  # avoid to compile this script
 
-from kombu import \
-    Connection, Exchange, Queue, Producer, Consumer
+from kombu import Connection, Exchange, Queue, Producer, Consumer
 
 from urlparse import urlparse
 
@@ -36,9 +37,7 @@ class Kombu(MOM):
     CONF_RESOURCE = 'kombu/kombu.conf'
 
     class Error(Exception):
-        """
-        Handle Kombu Exceptions
-        """
+        """Handle Kombu Exceptions"""
 
     def __init__(
         self, port=5672, *args, **kwargs
@@ -71,7 +70,8 @@ class Kombu(MOM):
             except Exception as e:
                 result.release()
                 self.logger.error(
-                    "Connection failure to %s: %s" % (uri, e))
+                    "Connection failure to %s: %s" % (uri, e)
+                )
 
         else:
             self.logger.debug("Allready connected")

@@ -19,6 +19,8 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+from __future__ import print_function
+
 from unittest import TestCase, main
 
 from canopsis.mongo.core import MongoStorage
@@ -34,9 +36,7 @@ except ImportError:
 class Bench(TestCase):
 
     def setUp(self):
-        """
-        initalize a storage.
-        """
+        """initalize a storage."""
 
         self.storage = MongoStorage(data_scope='test')
         # self.storage.safe = False
@@ -74,20 +74,16 @@ class Bench(TestCase):
         self.max_connections = 1
 
     def tearDown(self):
-        """
-        End the test
-        """
+        """End the test."""
 
         # remove all data from collection
         self.storage.drop()
 
     def test(self):
-        """
-        Run tests.
-        """
+        """Run tests."""
 
         threads = [
-            Thread(target=self._test_CRUD) for i in range(self.max_connections)
+            Thread(target=self._test_CRUD) for _ in range(self.max_connections)
         ]
 
         for thread in threads:
@@ -96,15 +92,13 @@ class Bench(TestCase):
         for thread in threads:
             thread.join()
 
-    def _test_CRUD(self):
-        """
-        Bench CRUD commands
-        """
+    def _test_crud(self):
+        """Bench CRUD commands"""
 
         print(
-            'Starting bench on %s with %s documents'
-            %
-            (self.commands, self.count)
+            'Starting bench on {0} with {1} documents'.format(
+                (self.commands, self.count)
+            )
         )
 
         stats_per_command = {
@@ -118,7 +112,7 @@ class Bench(TestCase):
 
             total = 0
 
-            for index, command in enumerate(self.commands):
+            for command in self.commands:
 
                 fn = command[1]
                 command = command[0]
@@ -132,10 +126,7 @@ class Bench(TestCase):
 
                 for j in range(self.count):
 
-                    fn(
-                        spec={'_id': str(self.count)},
-                        document=documents[j]
-                    )
+                    fn(spec={'_id': str(self.count)}, document=documents[j])
 
                 stop = time()
 
@@ -180,9 +171,7 @@ class Bench(TestCase):
         mean_t = mean_t / self.iteration
 
         bench_msg = "all command, min: %s, max: %s, mean: %s"
-        print(
-            bench_msg % (min_t, max_t, mean_t)
-        )
+        print(bench_msg % (min_t, max_t, mean_t))
 
 
 if __name__ == '__main__':

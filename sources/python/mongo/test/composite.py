@@ -28,8 +28,7 @@ from canopsis.mongo.composite import MongoCompositeStorage
 
 
 class MongoCompositeStorageTest(TestCase):
-    """MongoCompositeStorage UT on data_scope = "test".
-    """
+    """MongoCompositeStorage UT on data_scope = "test"."""
 
     def setUp(self):
         # create a storage on test_store collections
@@ -47,7 +46,7 @@ class MongoCompositeStorageTest(TestCase):
 
         self.assertTrue(self.storage.connected())
 
-    def test_CRUD(self):
+    def test_crud(self):
 
         self.storage.drop()
 
