@@ -18,7 +18,7 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-from canopsis.configuration.parameters import Parameter, Configuration
+from canopsis.configuration.model import Parameter, Configuration
 from canopsis.configuration.configurable.registry import ConfigurableRegistry
 from canopsis.middleware.core import Middleware, parse_scheme
 
@@ -186,8 +186,10 @@ class MiddlewareRegistry(ConfigurableRegistry):
                 # clean memory in case of error
                 if not data_scopes:
                     del data_types[data_type]
+
                 if not data_types:
                     del protocols[protocol]
+
                 if not protocols:
                     del MiddlewareRegistry.__MIDDLEWARES__[sharing_scope]
                 # and raise exception
@@ -206,9 +208,7 @@ class MiddlewareRegistry(ConfigurableRegistry):
         return result
 
     def get_middleware_by_uri(self, uri, *args, **kwargs):
-
-        """
-        Load a middleware related to input uri.
+        """Load a middleware related to input uri.
 
         If shared, the result instance is shared among same middleware type
         and self class type.
@@ -254,6 +254,16 @@ class MiddlewareRegistry(ConfigurableRegistry):
         )
 
         return result
+
+    def configure(self, *args, **kwargs):
+
+        super(MiddlewareRegistry, self).configure(*args, **kwargs)
+
+        if self.auto_connect:
+            for name in self:
+                configurable = self[name]
+                if isinstance(configurable, Middleware):
+                    configurable.connect()
 
     def _configure(self, unified_conf, *args, **kwargs):
 

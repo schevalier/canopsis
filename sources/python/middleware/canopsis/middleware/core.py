@@ -23,7 +23,7 @@ from urlparse import urlparse
 from canopsis.middleware.loader import Loader
 from canopsis.common.utils import ensure_iterable
 from canopsis.configuration.configurable import Configurable
-from canopsis.configuration.parameters import (
+from canopsis.configuration.model import (
     Parameter, Configuration, Category
 )
 from canopsis.configuration.configurable import MetaConfigurable
@@ -663,8 +663,8 @@ class Middleware(Configurable):
         for protocol in protocols:
             _data_types = Middleware.__MIDDLEWARES__.setdefault(protocol, {})
 
-            for dt in data_types:
-                _data_types[dt] = cls
+            for datatype in data_types:
+                _data_types[datatype] = cls
 
     @classmethod
     def get_protocols(cls):
@@ -798,8 +798,11 @@ class Middleware(Configurable):
                 )
             )
 
-            result.auto_connect = auto_connect
+            result._auto_connect = auto_connect
             result.configure(conf=conf)
+            if auto_connect:
+                result.connect()
+
             if auto_connect:
                 result.connect()
 
@@ -850,6 +853,9 @@ class Middleware(Configurable):
             result._auto_connect = auto_connect
             # and configure the result
             result.configure(conf=conf)
+            if auto_connect:
+                result.connect()
+
             if auto_connect:
                 result.connect()
 

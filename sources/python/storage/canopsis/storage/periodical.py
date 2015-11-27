@@ -28,17 +28,18 @@ class PeriodicalStorage(Storage):
     Two consecutives timestamp values can not be same values.
     """
 
-    __datatype__ = 'periodic'
+    __datatype__ = 'periodic'  #: default protocol name.
 
     class Index:
+        """periodical result index name."""
 
-        TIMESTAMP = 0
-        VALUE = 1
-        DATA_ID = 2
+        TIMESTAMP = 0  #: timestamp index value.
+        VALUE = 1  #: value index value.
+        DATA_ID = 2  #: data_id index value.
 
-    DATA_ID = 'data_id'
-    VALUE = 'value'
-    TIMESTAMP = 'timestamp'
+    DATA_ID = 'data_id'  #: data_id field name.
+    VALUE = 'value'  #: value field name.
+    TIMESTAMP = 'timestamp'  #: timestamp field name.
 
     def get(
         self, data_ids, timewindow=None, limit=0, skip=0, sort=None

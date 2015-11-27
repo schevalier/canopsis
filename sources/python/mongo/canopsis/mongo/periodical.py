@@ -18,6 +18,8 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
+"""Mongo implementation of the periodical storage."""
+
 from canopsis.common.utils import isiterable
 from canopsis.mongo.core import MongoStorage
 from canopsis.storage.periodical import PeriodicalStorage

@@ -36,8 +36,7 @@ CATEGORY = 'PERFDATA'
 @conf_paths(CONF_PATH)
 @add_category(CATEGORY)
 class PerfData(MiddlewareRegistry):
-    """Dedicated to access to perfdata (via periodic and timed stores).
-    """
+    """Dedicated to access to perfdata (via periodic and timed stores)."""
 
     PERFDATA_STORAGE = 'perfdata_storage'
     META_STORAGE = 'meta_storage'
@@ -114,8 +113,7 @@ class PerfData(MiddlewareRegistry):
 
     def get_point(self, metric_id, with_meta=True, timestamp=None):
         """Get the closest point before input timestamp. Add meta informations
-        if with_meta.
-        """
+        if with_meta."""
 
         if timestamp is None:
             timestamp = time()
@@ -139,8 +137,7 @@ class PerfData(MiddlewareRegistry):
     def get_meta(
         self, metric_id, timewindow=None, limit=0, sort=None
     ):
-        """Get the meta data related to input data_id and timewindow.
-        """
+        """Get the meta data related to input data_id and timewindow."""
 
         if timewindow is None:
             timewindow = get_offset_timewindow()
@@ -211,16 +208,14 @@ class PerfData(MiddlewareRegistry):
             )
 
     def put_meta(self, metric_id, meta, timestamp=None, cache=False):
-        """Update meta information.
-        """
+        """Update meta information."""
 
         self[PerfData.PERFDATA_STORAGE].put(
             data_id=metric_id, value=meta, timestamp=timestamp, cache=cache
         )
 
     def remove_meta(self, metric_id, timewindow=None, cache=False):
-        """Remove meta information.
-        """
+        """Remove meta information."""
 
         self[PerfData.PERFDATA_STORAGE].remove(
             data_id=metric_id, timewindow=timewindow, cache=cache)
@@ -242,5 +237,9 @@ class PerfData(MiddlewareRegistry):
         return result
 
     def is_internal(self, metric):
+        """True iif input metric name is internal.
+
+        An internal metric starts with 'cps_'.
+        :rtype: bool"""
 
         return metric['metric'].startswith('cps_')

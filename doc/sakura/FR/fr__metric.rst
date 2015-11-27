@@ -25,7 +25,7 @@ Updates
 .. csv-table::
    :header: "Author(s)", "Date", "Version", "Summary", "Accepted by"
 
-   "Jonathan Labéjof", "2015/10/13", "1.0", "Template creation", ""
+   "Jonathan Labéjof and David Delassus", "2015/10/13", "1.0", "Template creation", ""
 
 --------
 Contents
@@ -139,7 +139,6 @@ identity
 ########
 
 Invert time with values.
-
 
 invert/logarithm/percentile/offset/scale
 ########################################
@@ -265,3 +264,42 @@ Consolidation
 -------------
 
 The consolidation is just an aggregation of aggregation(s).
+
+Example
+=======
+
+.. _FR__Metric__Desc:
+
+Description
+-----------
+
+.. warning::
+
+   TODO
+
+.. _FR__Metric__PerfData:
+
+Performance Data
+----------------
+
+.. warning::
+
+   TODO
+
+.. _FR__Metric__TimeWindow:
+
+TimeWindow
+----------
+
+.. warning::
+
+   TODO
+
+.. _FR__Metric__TimeSerie:
+
+TimeSerie
+---------
+
+.. warning::
+
+   TODO
