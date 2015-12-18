@@ -32,10 +32,8 @@ from canopsis.topology.manager import TopologyManager
 from canopsis.context.manager import Context
 from canopsis.task.core import register_task
 from canopsis.event import Event
-from canopsis.check.manager import CheckManager
 
 cm = CalendarManager()
-_check = CheckManager()
 
 SOURCE = 'source'
 PUBLISHER = 'publisher'
