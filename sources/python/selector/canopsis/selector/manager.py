@@ -40,12 +40,14 @@ class SelectorManager(MiddlewareRegistry):
     CONFIG_STORAGE = 'config_storage'
     ALERTS_MANAGER = 'alerts_manager'
     CONTEXT_MANAGER = 'context_manager'
+    PBEHAVIOR_MANAGER = 'pbehavior_manager'
 
     def __init__(
         self,
         config_storage=None,
         alerts_manager=None,
         context_manager=None,
+        pbehavior_manager=None,
         *args, **kwargs
     ):
         super(SelectorManager, self).__init__(*args, **kwargs)
@@ -59,15 +61,21 @@ class SelectorManager(MiddlewareRegistry):
         if context_manager is not None:
             self[SelectorManager.CONTEXT_MANAGER1] = context_manager
 
+        if pbehavior_manager is not None:
+            self[SelectorManager.PBEHAVIOR_MANAGER] = pbehavior_manager
+
     def get_selectors(self):
         return self[SelectorManager.CONFIG_STORAGE].find_elements()
 
     def get_entities_by_selector(self, selector):
         context = self[SelectorManager.CONTEXT_MANAGER]
+        pbehavior = self[SelectorManager.PBEHAVIOR_MANAGER]
+        query = pbehavior.get_query(behaviors='downtime')
 
         context_filter = selector.get('context_filter', {})
         include_ids = selector.get('include_ids', None)
-        exclude_ids = selector.get('exclude_ids', None)
+        exclude_ids = selector.get('exclude_ids', [])
+        exclude_ids += pbehavior.whois(query=query)
 
         entities = context.find(_filter=context_filter)
 
