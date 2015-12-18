@@ -28,14 +28,14 @@ from time import time
 
 CONF_PATH = 'storage/locker.conf'
 CATEGORY = 'LOCKER'
-CONFIG = [
+CONTENT = [
     Parameter('interval', int)
 ]
 
 
 @conf_paths(CONF_PATH)
 @add_category(CATEGORY, content=CONTENT)
-class Locker(MiddlewareRegistry):
+class Lock(MiddlewareRegistry):
     """Manage locks in database for load balancing."""
 
     LOCK_STORAGE = 'lock_storage'
@@ -57,7 +57,7 @@ class Locker(MiddlewareRegistry):
         self._interval = value
 
     def __init__(self, interval=None, lock_storage=None, *args, **kwargs):
-        super(Locker, self).__init__(*args, **kwargs)
+        super(Lock, self).__init__(*args, **kwargs)
 
         if interval is not None:
             self.interval = interval
@@ -115,3 +115,19 @@ class Locker(MiddlewareRegistry):
             return False
 
         return True
+
+
+class Locker(object):
+    def __init__(self, lid, *args, **kwargs):
+        super(Locker, self).__init__(*args, **kwargs)
+
+        self.lid = lid
+        self.lock = Lock()
+
+    def __enter__(self, *args, **kwargs):
+        self.lock.acquire(self.lid)
+
+        return self.lock
+
+    def __exit__(self, *args, **kwargs):
+        self.lock.release(self.lid)
