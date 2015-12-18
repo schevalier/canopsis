@@ -18,501 +18,523 @@
 # along with Canopsis.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------
 
-from canopsis.common.init import Init
-from canopsis.old.rabbitmq import Amqp
-from canopsis.old.storage import get_storage
-from canopsis.old.account import Account
-from canopsis.event import forger, get_routingkey
-from canopsis.task.core import register_task
-from canopsis.tools import schema as cschema
+from canopsis.middleware.registry import MiddlewareRegistry
+from canopsis.configuration.configurable.decorator import conf_paths
+from canopsis.configuration.configurable.decorator import add_category
+from canopsis.configuration.model import Parameter
 
-from traceback import format_exc, print_exc
-
-from itertools import cycle
-
-from logging import INFO, DEBUG, FileHandler, Formatter
+from canopsis.check.base import Check
+from canopsis.task import get_task
 
 from time import time, sleep
-from json import loads
-from os import getpid
-from os.path import join
-from sys import prefix as sys_prefix
-
-DROP = -1
+from itertools import cycle
+import multiprocessing
 
 
-class Engine(object):
-    etype = 'Engine'
+CONF_PATH = 'engine/base.conf'
+CATEGORY = 'ENGINE'
+CONTENT = [
+    Parameter('event_processing'),
+    Parameter('beat_processing'),
+    Parameter('beat_interval', int),
+    Parameter('chain_to', Parameter.array()),
+    Parameter('balanced_chaining', Parameter.bool),
+    Parameter('beat_warn_time', int),
+    Parameter('beat_crit_time', int),
+    Parameter('work_warn_time', int),
+    Parameter('work_crit_time', int)
+]
 
-    amqpcls = Amqp
+
+@conf_paths(CONF_PATH)
+@add_category(CATEGORY, content=CONTENT)
+class Engine(MiddlewareRegistry):
+
+    MOM = 'mom'
+
+    DEFAULT_BEAT_INTERVAL = 60
+    DEFAULT_BALANCED_CHAINING = False
+
+    DEFAULT_BEAT_WARN_TIME = 5
+    DEFAULT_BEAT_CRIT_TIME = 10
+
+    DEFAULT_WORK_WARN_TIME = 3
+    DEFAULT_WORK_CRIT_TIME = 5
+
+    class DropMessage(Exception):
+        pass
+
+    @property
+    def beat_interval(self):
+        if not hasattr(self, '_beat_interval'):
+            self.beat_interval = None
+
+        return self._beat_interval
+
+    @beat_interval.setter
+    def beat_interval(self, value):
+        if value is None:
+            value = Engine.DEFAULT_BEAT_INTERVAL
+
+        self._beat_interval = value
+
+    @property
+    def chain_to(self):
+        if not hasattr(self, '_chain_to'):
+            self.chain_to = None
+
+        return self._chain_to
+
+    @chain_to.setter
+    def chain_to(self, value):
+        if value is None:
+            value = []
+
+        self._chain_to = value
+        self.next_in_chain = cycle(self._chain_to)
+
+    @property
+    def balanced_chaining(self):
+        if not hasattr(self, '_balanced_chaining'):
+            self.balanced_chaining = None
+
+        return self._balanced_chaining
+
+    @balanced_chaining.setter
+    def balanced_chaining(self, value):
+        if value is None:
+            value = Engine.DEFAULT_BALANCED_CHAINING
+
+        self._balanced_chaining = value
+
+    @property
+    def beat_warn_time(self):
+        if not hasattr(self, '_beat_warn_time'):
+            self.beat_warn_time = None
+
+        return self._beat_warn_time
+
+    @beat_warn_time.setter
+    def beat_warn_time(self, value):
+        if value is None:
+            value = Engine.DEFAULT_BEAT_WARN_TIME
+
+        self._beat_warn_time = value
+
+    @property
+    def beat_crit_time(self):
+        if not hasattr(self, '_beat_crit_time'):
+            self.beat_crit_time = None
+
+        return self._beat_crit_time
+
+    @beat_crit_time.setter
+    def beat_crit_time(self, value):
+        if value is None:
+            value = Engine.DEFAULT_BEAT_CRIT_TIME
+
+        self._beat_crit_time = value
+
+    @property
+    def work_warn_time(self):
+        if not hasattr(self, '_work_warn_time'):
+            self.work_warn_time = None
+
+        return self._work_warn_time
+
+    @work_warn_time.setter
+    def work_warn_time(self, value):
+        if value is None:
+            value = Engine.DEFAULT_WORK_WARN_TIME
+
+        self._work_warn_time = value
+
+    @property
+    def work_crit_time(self):
+        if not hasattr(self, '_work_crit_time'):
+            self.work_crit_time = None
+
+        return self._work_crit_time
+
+    @work_crit_time.setter
+    def work_crit_time(self, value):
+        if value is None:
+            value = Engine.DEFAULT_WORK_CRIT_TIME
+
+        self._work_crit_time = value
+
+    @property
+    def event_processing(self):
+        """
+        Event processing event_processing executed in the work
+        """
+
+        return self._event_processing
+
+    @event_processing.setter
+    def event_processing(self, value):
+        """
+        Change of event_processing.
+
+        :param value: new event_processing to use. If None or wrong value,
+            event_processing is used
+        :type value: NoneType, str or function
+        """
+
+        # by default, load default message processing
+        if value is None:
+            value = event_processing
+
+        # if str, load the related function
+        elif isinstance(value, basestring):
+            try:
+                value = get_task(value)
+
+            except ImportError:
+                self.logger.error('Impossible to load %s' % value)
+                value = event_processing
+
+        # set _event_processing and work
+        self._event_processing = value
+
+    @property
+    def beat_processing(self):
+        """
+        Task executed in the beat
+        """
+
+        return self._beat_processing
+
+    @beat_processing.setter
+    def beat_processing(self, value):
+        """
+        Change of beat_processing.
+
+        :param value: new beat_processing to use. If None or wrong value,
+            beat_processing is used
+        :type value: NoneType, str or function
+        """
+
+        # by default, load default beat processing
+        if value is None:
+            value = beat_processing
+
+        # if str, load the related function
+        elif isinstance(value, basestring):
+            try:
+                value = get_task(value)
+
+            except ImportError:
+                self.logger.error('Impossible to load %s' % value)
+                value = beat_processing
+
+        # set _beat_processing and work
+        self._beat_processing = value
+
+    def __new__(cls, *args, **kwargs):
+        if cls is Engine:
+            raise TypeError('Engine may not be instantiated')
+
+        return MiddlewareRegistry.__new__(cls, *args, **kwargs)
 
     def __init__(
         self,
-        next_amqp_queues=[],
-        next_balanced=False,
-        name="worker1",
-        beat_interval=60,
-        logging_level=INFO,
-        exchange_name='amq.direct',
-        routing_keys=[],
-        camqp_custom=None,
-        max_retries=5,
+        name,
+        worker=0,
+        event_processing=None,
+        beat_processing=None,
+        beat_interval=None,
+        chain_to=None,
+        balanced_chaining=None,
+        beat_warn_time=None,
+        beat_crit_time=None,
+        work_warn_time=None,
+        work_crit_time=None,
         *args, **kwargs
     ):
-
-        super(Engine, self).__init__()
-
-        self.logging_level = logging_level
-        self.debug = logging_level == DEBUG
-
-        self.RUN = True
+        super(Engine, self).__init__(*args, **kwargs)
 
         self.name = name
+        self.worker = worker
 
-        # Set parametrized Amqp for testing purposes
-        if camqp_custom is None:
-            self.Amqp = Amqp
-        else:
-            self.Amqp = camqp_custom
+        if event_processing is not None:
+            self.event_processing = event_processing
 
-        self.amqp_queue = "Engine_{0}".format(self.name)
-        self.routing_keys = routing_keys
-        self.exchange_name = exchange_name
+        if beat_processing is not None:
+            self.beat_processing = beat_processing
 
-        self.perfdata_retention = 3600
+        if beat_interval is not None:
+            self.beat_interval = beat_interval
 
-        self.next_amqp_queues = next_amqp_queues
-        self.get_amqp_queue = cycle(self.next_amqp_queues)
+        if chain_to is not None:
+            self.chain_to = chain_to
 
-        # Get from internal or external queue
-        self.next_balanced = next_balanced
+        if balanced_chaining is not None:
+            self.balanced_chaining = balanced_chaining
 
-        init = Init()
+        if beat_warn_time is not None:
+            self.beat_warn_time = beat_warn_time
 
-        self.logger = init.getLogger(name, logging_level=self.logging_level)
+        if beat_crit_time is not None:
+            self.beat_crit_time = beat_crit_time
 
-        logHandler = FileHandler(
-            filename=join(
-                sys_prefix, 'var', 'log', 'engines', '{0}.log'.format(name)
-            )
-        )
+        if work_warn_time is not None:
+            self.work_warn_time = work_warn_time
 
-        logHandler.setFormatter(
-            Formatter(
-                "%(asctime)s %(levelname)s %(name)s %(message)s"
-            )
-        )
+        if work_crit_time is not None:
+            self.work_crit_time = work_crit_time
 
-        # Log in file
-        self.logger.addHandler(logHandler)
-
-        self.max_retries = max_retries
-
-        self.counter_error = 0
-        self.counter_event = 0
-        self.counter_worktime = 0
-
-        self.thd_warn_sec_per_evt = 0.6
-        self.thd_crit_sec_per_evt = 0.9
-
-        self.beat_interval = beat_interval
-        self.beat_last = time()
-
-        self.create_queue = True
-
-        self.send_stats_event = True
-
-        self.rk_on_error = []
-
-        self.last_stat = int(time())
-
-        self.logger.info("Engine initialized")
-
-    def new_amqp_queue(
-        self, amqp_queue, routing_keys, on_amqp_event, exchange_name
-    ):
-        self.amqp.add_queue(
-            queue_name=amqp_queue,
-            routing_keys=routing_keys,
-            callback=on_amqp_event,
-            exchange_name=exchange_name,
-            no_ack=True,
-            exclusive=False,
-            auto_delete=False
-        )
-
-    def pre_run(self):
-        pass
-
-    def post_run(self):
-        pass
-
-    def run(self):
-        def ready():
-            self.logger.info(" + Ready!")
-
-        self.logger.info("Start Engine with pid {0}".format(getpid()))
-
-        self.amqp = self.amqpcls(
-            logging_level=self.logging_level,
-            logging_name="{0}-amqp".format(self.name),
-            on_ready=ready,
-            max_retries=self.max_retries
-        )
-
-        if self.create_queue:
-            self.new_amqp_queue(
-                self.amqp_queue,
-                self.routing_keys,
-                self.on_amqp_event,
-                self.exchange_name
-            )
-
-        self.amqp.start()
-
-        self.pre_run()
-
-        while self.RUN:
-            # Beat
-            if self.beat_interval:
-                now = time()
-
-                if now > (self.beat_last + self.beat_interval):
-                    self._beat()
-                    self.beat_last = now
-
-            try:
-                sleep(1)
-
-            except Exception as err:
-                self.logger.error("Error in break time: {0}".format(err))
-                self.RUN = False
-
-            except KeyboardInterrupt:
-                self.logger.info('Stop request')
-                self.RUN = False
-
-        self.post_run()
-
-        self.logger.info("Stop Engine")
-        self.stop()
-        self.logger.info("End of Engine")
-
-    def on_amqp_event(self, event, msg):
-        try:
-            self._work(event, msg)
-
-        except Exception as err:
-            if event['rk'] not in self.rk_on_error:
-                self.logger.error(err)
-                self.logger.error("Impossible to deal with: {0}".format(event))
-                self.rk_on_error.append(event['rk'])
-
-            self.next_queue(event)
-
-    def _work(self, event, msg=None, *args, **kargs):
-        start = time()
-        error = False
-
-        try:
-            if self.debug:
-                if 'processing' not in event:
-                    event['processing'] = {}
-
-                event['processing'][self.etype] = start
-
-            wevent = self.work(event, msg, *args, **kargs)
-
-            if wevent != DROP:
-                if isinstance(wevent, dict):
-                    event = wevent
-
-                self.next_queue(event)
-
-        except Exception as err:
-            error = True
-            self.logger.error("Worker raise exception: {0}".format(err))
-            self.logger.error(format_exc())
-
-        if error:
-            self.counter_error += 1
-
-        elapsed = time() - start
-
-        if elapsed > 3:
-            self.logger.warning("Elapsed time %.2f seconds" % elapsed)
-
-        self.counter_event += 1
-        self.counter_worktime += elapsed
-
-    def work(self, event, amqp_msg):
-        return event
-
-    def next_queue(self, event):
-        if self.next_balanced:
-            queue_name = self.get_amqp_queue.next()
-            if queue_name:
-                publish(
-                    publisher=self.amqp, event=event, rk=queue_name,
-                    exchange='amq.direct'
-                )
-
-        else:
-            for queue_name in self.next_amqp_queues:
-                publish(
-                    publisher=self.amqp, event=event, rk=queue_name,
-                    exchange="amq.direct"
-                )
-
-    def _beat(self):
-        now = int(time())
-
-        if self.last_stat + 60 <= now:
-            self.logger.debug(" + Send stats")
-            self.last_stat = now
-
-            evt_per_sec = 0
-            sec_per_evt = 0
-
-            if self.counter_event:
-                evt_per_sec = float(self.counter_event) / self.beat_interval
-                self.logger.debug(" + %0.2f event(s)/seconds" % evt_per_sec)
-
-            if self.counter_worktime and self.counter_event:
-                sec_per_evt = self.counter_worktime / self.counter_event
-                self.logger.debug(" + %0.5f seconds/event" % sec_per_evt)
-
-            # Submit event
-            if self.send_stats_event and self.counter_event != 0:
-                state = 0
-
-                if sec_per_evt > self.thd_warn_sec_per_evt:
-                    state = 1
-
-                if sec_per_evt > self.thd_crit_sec_per_evt:
-                    state = 2
-
-                perf_data_array = [
-                    {
-                        'retention': self.perfdata_retention,
-                        'metric': 'cps_evt_per_sec',
-                        'value': round(evt_per_sec, 2), 'unit': 'evt'},
-                    {
-                        'retention': self.perfdata_retention,
-                        'metric': 'cps_sec_per_evt',
-                        'value': round(sec_per_evt, 5), 'unit': 's',
-                        'warn': self.thd_warn_sec_per_evt,
-                        'crit': self.thd_crit_sec_per_evt}
-                ]
-
-                self.logger.debug(" + State: {0}".format(state))
-
-                event = forger(
-                    connector="Engine",
-                    connector_name="engine",
-                    event_type="check",
-                    source_type="resource",
-                    resource=self.amqp_queue,
-                    state=state,
-                    state_type=1,
-                    output="%0.2f evt/sec, %0.5f sec/evt" % (
-                        evt_per_sec, sec_per_evt),
-                    perf_data_array=perf_data_array
-                )
-
-                publish(event=event, publisher=self.amqp)
-
-            self.counter_error = 0
-            self.counter_event = 0
-            self.counter_worktime = 0
-
-        try:
-            self.beat()
-
-        except Exception as err:
-            self.logger.error("Beat raise exception: {0}".format(err))
-            self.logger.error(print_exc())
-
-        finally:
-            self.beat_lock = False
-
-    def beat(self):
-        pass
-
-    def stop(self):
-        self.RUN = False
-
-        # cancel self consumer
-        self.amqp.cancel_queues()
-
-        self.amqp.stop()
-        self.amqp.join()
-        self.logger.debug(" + Stopped")
-
-    class Lock(object):
-        def __init__(self, engine, name, *args, **kwargs):
-            super(Engine.Lock, self).__init__()
-
-            self.name = name
-            self.lock_id = '{0}.{1}'.format(engine.etype, name)
-
-            self.storage = get_storage(
-                namespace='lock',
-                logging_level=engine.logging_level,
-                account=Account(user='root', group='root')
-            ).get_backend()
-
-            self.engine = engine
-            self.lock = {}
-
-        def own(self):
-            now = time()
-            last = self.lock.get('t', now)
-
-            if self.lock.get('l', False) \
-                    and (now - last) < self.engine.beat_interval:
-                self.engine.logger.debug(
-                    'Another engine {0} is already holding the lock {1}'.
-                    format(self.engine.etype, self.name))
-
-                return False
-
-            else:
-                self.engine.logger.debug(
-                    'Lock {1} on engine {0}, processing...'.format(
-                        self.engine.etype, self.name))
-                return True
-
-            return False
-
-        def __enter__(self):
-            lock = self.storage.find_and_modify(
-                query={'_id': self.lock_id},
-                update={'$set': {'l': True}},
-                upsert=True
-            )
-
-            if lock is not None:
-                self.lock = lock
-
-            if 't' not in self.lock:
-                self.lock['t'] = 0
-
-            return self
-
-        def __exit__(self, type, value, tb):
-            if self.own():
-                self.engine.logger.debug(
-                    'Release lock {1} on engine {0}'.format(
-                        self.engine.etype, self.name))
-
-                self.storage.save({
-                    '_id': self.lock_id,
-                    'l': False,
-                    't': time()
-                })
-
-        @classmethod
-        def release(cls, lock_id, object_storage):
-            object_storage.update(
-                {'_id': lock_id},
-                {'$set': {
-                    'l': False,
-                    't': time()
-                }},
-                upsert=True
-            )
-
-
-class TaskHandler(Engine):
-    etype = 'Task'
-
-    def __init__(self, *args, **kwargs):
-        super(TaskHandler, self).__init__(*args, **kwargs)
-        self.amqp_queue = self.name
-
-    def work(self, msg, *args, **kwargs):
-        self.logger.info('Received job: {0}'.format(msg))
-
-        start = int(time())
-
-        job = None
-        output = None
-        state = 3
-
-        try:
-            if not isinstance(msg, dict):
-                job = loads(msg)
-
-            else:
-                job = msg
-
-        except ValueError as err:
-            output = 'Impossible to decode message: {0}'.format(err)
-            state = 2
-
-        else:
-            if not cschema.validate(job, 'task.{0}'.format(self.etype)):
-                output = 'Invalid job'
-                state = 2
-
-            else:
-                try:
-                    state, output = self.handle_task(job)
-
-                except NotImplementedError:
-                    state = 1
-                    output = 'Not implemented'
-
-        end = int(time())
-
-        event = {
-            'timestamp': end,
-            'connector': 'taskhandler',
-            'connector_name': self.name,
-            'event_type': 'check',
-            'source_type': 'resource',
-            'component': 'job',
-            'resource': job['jobid'],
-            'state': state,
-            'state_type': 1,
-            'output': output,
-            'execution_time': end - start
+        self.running = multiprocessing.Event()
+        self.last_beat = 0
+        self.counter = {
+            'total': 0,
+            'passed': 0,
+            'dropped': 0,
+            'errored': 0,
+            'beattime': 0,
+            'worktime': 0
         }
 
-        publish(event=event, publisher=self.amqp, logger=self.logger)
+    def beat(self, *args, **kwargs):
+        start = time()
 
-    def handle_task(self, job):
+        if self.beat_interval:
+            now = time()
+            timestep = now - (self.last_beat + self.beat_interval)
+
+            if timestep:
+                self.beat_processing(
+                    engine=self,
+                    logger=self.logger,
+                    timestep=timestep,
+                    *args, **kwargs
+                )
+
+                self.send_stats()
+
+                self.last_beat = now
+
+        elapsed = time() - start
+        self.counter['beattime'] += elapsed
+
+        # Log elapsed time
+        logmethod = self.logger.debug
+
+        if elapsed > self.beat_crit_time:
+            logmethod = self.logger.error
+
+        elif elapsed > self.beat_warn_time:
+            logmethod = self.logger.warning
+
+        logmethod('Beat lasted %.02f seconds', elapsed)
+
+        return elapsed
+
+    def send_stats(self):
+        evt_per_sec = float(self.counter['total']) / self.beat_interval
+        sec_per_evt = self.counter['worktime'] / self.counter['total']
+        state = Check.OK
+
+        if sec_per_evt > self.work_crit_time:
+            state = Check.MAJOR
+
+        elif sec_per_evt > self.work_warn_time:
+            state = Check.MINOR
+
+        elif self.counter['errored']:
+            state = Check.CRITICAL
+
+        output = '{0} evt/sec, {1} sec/evt'.format(evt_per_sec, sec_per_evt)
+        long_output = '{0} passed, ' \
+            '{1} dropped, ' \
+            '{2} errored, ' \
+            '{3}s in work, ' \
+            '{4}s in beat'.format(
+                self.counter['passed'],
+                self.counter['dropped'],
+                self.counter['errored'],
+                self.counter['worktime'],
+                self.counter['beattime']
+            )
+
+        event = Check.create(
+            connector_name='engine',
+            source_type='resource',
+            component=self.name,
+            resource=self.worker,
+            state=state,
+            output=output,
+            long_output=long_output,
+            metrics=[
+                {
+                    'metric': 'evt_per_sec',
+                    'value': evt_per_sec,
+                    'type': 'GAUGE',
+                    'unit': 'evt/s'
+                }, {
+                    'metric': 'sec_per_evt',
+                    'value': sec_per_evt,
+                    'type': 'GAUGE',
+                    'unit': 's',
+                    'warn': self.work_warn_time,
+                    'crit': self.work_crit_time
+                }, {
+                    'metric': 'worktime',
+                    'value': self.counter['worktime'],
+                    'type': 'GAUGE',
+                    'unit': 's',
+                    'warn': self.work_warn_time,
+                    'crit': self.work_crit_time
+                }, {
+                    'metric': 'beattime',
+                    'value': self.counter['beattime'],
+                    'type': 'GAUGE',
+                    'unit': 's',
+                    'warn': self.beat_warn_time,
+                    'crit': self.beat_crit_time
+                }, {
+                    'metric': 'evt_passed',
+                    'value': self.counter['passed'],
+                    'type': 'COUNTER',
+                    'unit': 'evt'
+                }, {
+                    'metric': 'evt_dropped',
+                    'value': self.counter['dropped'],
+                    'type': 'COUNTER',
+                    'unit': 'evt'
+                }, {
+                    'metric': 'evt_errored',
+                    'value': self.counter['errored'],
+                    'type': 'COUNTER',
+                    'unit': 'evt'
+                }
+            ]
+        )
+
+        publisher = self[Engine.MOM].get_publisher()
+        publisher(event)
+
+        for key in self.counter:
+            self.counter[key] = 0
+
+    def work(self, message, *args, **kwargs):
+        start = time()
+
+        try:
+            result = self.event_processing(
+                engine=self,
+                logger=self.logger,
+                message=message,
+                *args, **kwargs
+            )
+
+        except Engine.DropMessage:
+            self.logger.debug('Message dropped')
+            self.counter['dropped'] += 1
+
+        except Exception:
+            self.logger.error('Worker raised exception', exc_info=True)
+            self.counter['errored'] += 1
+
+        else:
+            if result is None:
+                result = message
+
+            self.chain_message(result)
+            self.counter['passed'] += 1
+
+        finally:
+            self.counter['total'] += 1
+
+        elapsed = time() - start
+        self.counter['worktime'] += elapsed
+
+        # Log elapsed time
+        logmethod = self.logger.debug
+
+        if elapsed > self.work_crit_time:
+            logmethod = self.logger.error
+
+        elif elapsed > self.work_warn_time:
+            logmethod = self.logger.warning
+
+        logmethod('Worker lasted %.02f seconds', elapsed)
+
+    def chain_message(self, message):
+        mom = self[Engine.MOM]
+
+        def publish(msg, dest):
+            publisher = mom.get_publisher(dest)
+            publisher(msg)
+
+        map(
+            lambda dest: publish(message, dest),
+            [self.next_in_chain.next()]
+            if self.balanced_chaining
+            else self.chain_to
+        )
+
+    def run(self):
+        mom = self[Engine.MOM]
+
+        consumer = mom.get_consumer(self.work)
+        consumer.start()
+
+        self.running.set()
+
+        while self.running.is_set():
+            try:
+                elapsed = self.beat()
+
+            except Exception:
+                self.logger.error('Beat raised exception', exc_info=True)
+                elapsed = 0
+
+            if elapsed < 1:
+                sleep(1 - elapsed)
+
+        consumer.stop()
+
+    def stop(self):
+        self.running.clear()
+
+    @classmethod
+    def load(cls, name, worker=0, *args, **kwargs):
+        """Load a new engine in adding a specific conf_path.
+
+        :param str name: engine name.
+        :param int worker: worker instance number.
+        :param tuple args: used in new engine initialization such as varargs.
+        :param dict kwargs: used in new engine initialization such as keywords.
         """
-            :param job: Job's informations
-            :type job: dict
 
-            :returns: (<state>, <output>)
-        """
+        decorator = conf_paths('engines/{0}.conf'.format(name))
+        engine = decorator(type(name, (cls,), {}))
 
-        raise NotImplementedError()
+        return engine(name=name, worker=worker, *args, **kwargs)
 
 
-@register_task
-def publish(event, publisher, rk=None, exchange=None, logger=None, **kwargs):
-    """Task dedicated to publish an event from an engine.
+def event_processing(engine, event, **params):
+    """
+    Event processing signature to respect in order to process a event.
 
-    :param dict event to send.
-    :param publisher: object in charge of publishing the event. Its method
-        ``publish`` takes three parameters, the ``event``, the ``rk`` related
-        to the event and an ``exchange name``.
+    A condition may returns a boolean value.
 
-    :param str rk: routing key to use. If None, use get_routingkey(event).
-    :param str exchange: exchange name. If None, use
-        ``publisher.exchange_name_events``.
+    :param Engine engine: engine which process the event.
+    :param dict event: event to process.
+    :param dict params: event processing additional parameters.
     """
 
-    if exchange is None:
-        exchange = publisher.exchange_name_events
+    return event
 
-    if rk is None:
-        rk = get_routingkey(event)
 
-    publisher.publish(
-        event, rk, exchange
-    )
+def beat_processing(engine, timestep, **params):
+    """
+    Beat processing signature to respect in order to execute a periodic task.
+
+    :param Engine engine: engine which executes the beat.
+    :param float timestep: time in seconds since last beat.
+    :param dict params: beat processing additional parameters.
+    """
+
+    pass
