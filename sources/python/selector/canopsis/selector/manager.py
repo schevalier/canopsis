@@ -23,7 +23,7 @@ from canopsis.configuration.configurable.decorator import conf_paths
 from canopsis.configuration.configurable.decorator import add_category
 
 from canopsis.common.template import Template
-from canopsis.selector.event import Selector
+from canopsis.event.selector import Selector
 from canopsis.event.check import Check
 from canopsis.task import get_task
 
