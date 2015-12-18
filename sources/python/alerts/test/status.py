@@ -22,11 +22,11 @@
 from unittest import TestCase, main
 
 from canopsis.middleware.core import Middleware
-from canopsis.check import Check
+from canopsis.check.base import Check
 
 from canopsis.alerts.manager import Alerts
 from canopsis.alerts.status import (
-    FLAPPING, ONGOING, CANCELED, OFF,
+    ONGOING, CANCELED, OFF,
     is_flapping, is_stealthy, compute_status, get_last_state, get_last_status,
     get_previous_step
 )

@@ -28,7 +28,7 @@ from canopsis.common.utils import ensure_iterable
 from canopsis.task.core import get_task
 
 from canopsis.event.manager import Event
-from canopsis.check import Check
+from canopsis.event.check import Check
 
 from canopsis.alerts.status import get_last_state, get_last_status, OFF
 
@@ -294,10 +294,10 @@ class Alerts(MiddlewareRegistry):
         ]
 
         typemap = {
-            'stateinc': Check.EVENT_TYPE,
-            'statedec': Check.EVENT_TYPE,
-            'statusinc': Check.EVENT_TYPE,
-            'statusdec': Check.EVENT_TYPE,
+            'stateinc': Check.DEFAULT_EVENT_TYPE,
+            'statedec': Check.DEFAULT_EVENT_TYPE,
+            'statusinc': Check.DEFAULT_EVENT_TYPE,
+            'statusdec': Check.DEFAULT_EVENT_TYPE,
             'ack': 'ack',
             'ackremove': 'ackremove',
             'cancel': 'cancel',
@@ -320,8 +320,8 @@ class Alerts(MiddlewareRegistry):
 
         for step in alarm['steps']:
             event = eventmodel.copy()
-            event['timestamp'] = step['t']
-            event['output'] = step['m']
+            event[Check.TIMESTAMP] = step['t']
+            event[Check.OUTPUT] = step['m']
 
             if step['_t'] in valmap:
                 field = valmap[step['_t']]
@@ -331,13 +331,13 @@ class Alerts(MiddlewareRegistry):
                 event['author'] = step['a']
 
             if step['_t'] in check_referer_types:
-                event['event_type'] = 'check'
-                event['ref_rk'] = Event.get_rk(event)
+                event[Check.EVENT_TYPE] = Check.DEFAULT_EVENT_TYPE
+                event['ref_rk'] = Event.get_routing_keyk(event)
 
             if Check.STATE not in event:
                 event[Check.STATE] = get_last_state(alarm)
 
-            event['event_type'] = typemap[step['_t']]
+            event[Check.EVENT_TYPE] = typemap[step['_t']]
 
             for field in self.extra_fields:
                 if field in alarm['extra']:
@@ -359,9 +359,9 @@ class Alerts(MiddlewareRegistry):
         entity_id = self[Alerts.CONTEXT_MANAGER].get_entity_id(entity)
 
         author = event.get('author', None)
-        message = event.get('output', None)
+        message = event.get(Check.OUTPUT, None)
 
-        if event['event_type'] == Check.EVENT_TYPE:
+        if event[Check.EVENT_TYPE] == Check.DEFAULT_EVENT_TYPE:
             if event[Check.STATE] != Check.OK:
                 self.make_alarm(entity_id, event)
 
@@ -373,7 +373,7 @@ class Alerts(MiddlewareRegistry):
         else:
             try:
                 task = get_task('alerts.useraction.{0}'.format(
-                    event['event_type']
+                    event[Check.EVENT_TYPE]
                 ), cacheonly=True)
 
             except ImportError:
@@ -410,7 +410,7 @@ class Alerts(MiddlewareRegistry):
 
         value = alarm.get(self[Alerts.ALARM_STORAGE].VALUE)
 
-        old_state = get_last_state(value, ts=event['timestamp'])
+        old_state = get_last_state(value, ts=event[Check.TIMESTAMP])
 
         if state != old_state:
             self.change_of_state(alarm, old_state, state, event)
@@ -431,7 +431,7 @@ class Alerts(MiddlewareRegistry):
 
         value = alarm.get(self[Alerts.ALARM_STORAGE].VALUE)
 
-        old_status = get_last_status(value, ts=event['timestamp'])
+        old_status = get_last_status(value, ts=event[Check.TIMESTAMP])
 
         if status != old_status:
             self.change_of_status(
@@ -536,7 +536,11 @@ class Alerts(MiddlewareRegistry):
                 }
             }
 
-            self[Alerts.ALARM_STORAGE].put(alarm_id, value, event['timestamp'])
+            self[Alerts.ALARM_STORAGE].put(
+                alarm_id,
+                value,
+                event[Check.TIMESTAMP]
+            )
 
     def resolve_alarms(self):
         """
