@@ -40,6 +40,7 @@ High-Level features
    :titlesonly:
 
    fr__alarm
+   fr__selector
    fr__serie
    fr__category-chart
    fr__statistics
