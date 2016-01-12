@@ -24,9 +24,6 @@ from canopsis.configuration.configurable.decorator import add_category
 from canopsis.configuration.model import Parameter
 from canopsis.common.utils import ensure_iterable
 
-from canopsis.old.account import Account
-from canopsis.old.storage import get_storage
-
 from socket import getfqdn
 import json
 import os
@@ -62,11 +59,6 @@ class JSONLoaderModule(MigrationModule):
 
         if json_path is not None:
             self.json_path = json_path
-
-        self.storage = get_storage(
-            account=Account(user='root', group='root'),
-            namespace='object'
-        )
 
     def init(self):
         substitutes = [
@@ -107,7 +99,8 @@ class JSONLoaderModule(MigrationModule):
         self.init()
 
     def load_documents(self, data, collection, filename):
-        storage = self.storage.get_backend(collection)
+        self.storage.table = collection
+
         data = ensure_iterable(data)
 
         for doc in data:
@@ -119,12 +112,13 @@ class JSONLoaderModule(MigrationModule):
 
                 continue
 
-            mfilter = {'loader_id': doc['loader_id']}
-            doc_exists = storage.find(mfilter).count()
+            doc_exists = self.storage.count_elements(
+                query={'loader_id': doc['loader_id']}
+            )
 
             if doc_exists:
                 if not doc.get('loader_no_update', True):
-                    storage.update(mfilter, doc, upsert=True)
+                    self.storage.put_element(element=doc)
 
                 else:
                     self.logger.info('Document "{0}" not updatable'.format(
@@ -132,4 +126,4 @@ class JSONLoaderModule(MigrationModule):
                     ))
 
             else:
-                storage.update(mfilter, doc, upsert=True)
+                self.storage.put_element(element=doc)

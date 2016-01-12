@@ -21,43 +21,16 @@
 from canopsis.migration.manager import MigrationModule
 from canopsis.configuration.configurable.decorator import conf_paths
 from canopsis.configuration.configurable.decorator import add_category
-from canopsis.configuration.model import Parameter
-from canopsis.middleware.core import Middleware
 
 
 CONF_PATH = 'migration/serie.conf'
 CATEGORY = 'SERIE'
-CONTENT = [
-    Parameter('storage')
-]
+CONTENT = []
 
 
 @conf_paths(CONF_PATH)
 @add_category(CATEGORY, content=CONTENT)
 class SerieModule(MigrationModule):
-    @property
-    def storage(self):
-        if not hasattr(self, '_storage'):
-            self.storage = None
-
-        return self._storage
-
-    @storage.setter
-    def storage(self, value):
-        if value is None:
-            value = 'storage-default-serie2://'
-
-        if isinstance(value, basestring):
-            value = Middleware.get_middleware_by_uri(value)
-
-        self._storage = value
-
-    def __init__(self, storage=None, *args, **kwargs):
-        super(SerieModule, self).__init__(*args, **kwargs)
-
-        if storage is not None:
-            self.storage = storage
-
     def init(self):
         pass
 

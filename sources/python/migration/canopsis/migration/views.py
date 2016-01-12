@@ -21,7 +21,6 @@
 from canopsis.migration.manager import MigrationModule
 from canopsis.configuration.configurable.decorator import conf_paths
 from canopsis.configuration.configurable.decorator import add_category
-from canopsis.middleware.core import Middleware
 from canopsis.organisation.rights import Rights
 
 from time import time
@@ -41,10 +40,6 @@ class ViewsModule(MigrationModule):
     def __init__(self, *args, **kwargs):
         super(ViewsModule, self).__init__(*args, **kwargs)
 
-        self.storage = Middleware.get_middleware_by_uri(
-            'storage-default://',
-            table='object'
-        )
         self.rights = Rights()
 
     def init(self):

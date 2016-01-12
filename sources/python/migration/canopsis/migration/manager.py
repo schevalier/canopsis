@@ -19,6 +19,8 @@
 # ---------------------------------
 
 from canopsis.configuration.configurable import Configurable
+from canopsis.middleware.registry import MiddlewareRegistry
+
 from canopsis.configuration.configurable.decorator import conf_paths
 from canopsis.configuration.configurable.decorator import add_category
 from canopsis.configuration.model import Parameter
@@ -99,7 +101,13 @@ class MigrationTool(Configurable):
     Parameter('ask_timeout', parser=int),
     Parameter('version_info')
 ])
-class MigrationModule(Configurable):
+class MigrationModule(MiddlewareRegistry):
+
+    STORAGE = 'storage'
+
+    @property
+    def storage(self):
+        return self[MigrationModule.STORAGE]
 
     @property
     def ask_timeout(self):
@@ -129,8 +137,17 @@ class MigrationModule(Configurable):
 
         self._version_info = os.path.expanduser(value)
 
-    def __init__(self, ask_timeout=None, version_info=None, *args, **kwargs):
+    def __init__(
+        self,
+        storage=None,
+        ask_timeout=None,
+        version_info=None,
+        *args, **kwargs
+    ):
         super(MigrationModule, self).__init__(*args, **kwargs)
+
+        if storage is not None:
+            self[MigrationModule.STORAGE] = storage
 
         if ask_timeout is not None:
             self.ask_timeout = ask_timeout

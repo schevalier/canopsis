@@ -23,9 +23,6 @@ from canopsis.configuration.configurable.decorator import conf_paths
 from canopsis.configuration.configurable.decorator import add_category
 from canopsis.configuration.model import Parameter
 
-from canopsis.old.account import Account
-from canopsis.old.storage import Storage
-
 
 CONF_PATH = 'migration/purge.conf'
 CATEGORY = 'PURGE'
@@ -55,15 +52,13 @@ class PurgeModule(MigrationModule):
     def __init__(self, collections=None, *args, **kwargs):
         super(PurgeModule, self).__init__(*args, **kwargs)
 
-        self.storage = Storage(account=Account(user='root', group='root'))
-
         if collections is not None:
             self.collections = collections
 
     def init(self):
         for collection in self.collections:
             self.logger.info('Drop collection: {0}'.format(collection))
-            self.storage.drop_namespace(collection)
+            self.storage.drop(table=collection)
 
     def update(self):
         pass

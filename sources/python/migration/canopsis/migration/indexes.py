@@ -21,14 +21,14 @@
 from canopsis.migration.manager import MigrationModule
 from canopsis.configuration.configurable.decorator import conf_paths
 from canopsis.configuration.configurable.decorator import add_category
-
-from canopsis.old.account import Account
-from canopsis.old.storage import get_storage
+from canopsis.configuration.model import Parameter
 
 
 CONF_PATH = 'migration/indexes.conf'
 CATEGORY = 'INDEXES'
-CONTENT = []
+CONTENT = [
+    Parameter('indexes', parser=eval)
+]
 
 
 @conf_paths(CONF_PATH)
@@ -104,22 +104,31 @@ class IndexesModule(MigrationModule):
         ]
     }
 
-    def __init__(self, *args, **kwargs):
+    @property
+    def indexes(self):
+        if not hasattr(self, '_indexes'):
+            self.indexes = None
+
+        return self._indexes
+
+    @indexes.setter
+    def indexes(self, value):
+        if value is None:
+            value = IndexesModule.INDEXES
+
+        self._indexes = value
+
+    def __init__(self, indexes=None, *args, **kwargs):
         super(IndexesModule, self).__init__(*args, **kwargs)
 
-        self.storage = get_storage(
-            account=Account(user='root', group='root'),
-            namespace='object'
-        )
+        if indexes is not None:
+            self.indexes = indexes
 
     def init(self):
-        for collection in IndexesModule.INDEXES:
+        for collection in self.indexes:
             self.logger.info('Indexing collection: {0}'.format(collection))
-            col = self.storage.get_backend(collection)
-            col.drop_indexes()
-
-            for index in IndexesModule.INDEXES[collection]:
-                col.ensure_index(index)
+            self.storage.table = collection
+            self.storage.indexes = self.indexes[collection]
 
     def update(self):
         answer = self.ask(
