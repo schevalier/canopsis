@@ -23,13 +23,16 @@ from canopsis.context.manager import ContextManager
 from canopsis.pbehavior.manager import PBehaviorManager
 from canopsis.event.downtime import Downtime
 
+from datetime import datetime, timedelta
+from icalendar import Event as vEvent
+
 
 def event_processing(
     engine,
     event,
     logger=None,
     context=None,
-    pbehavior=None
+    pbehavior=None,
     **kwargs
 ):
     if context is None:
